@@ -1,0 +1,16 @@
+# LLM access (KathDB's own calls go through LangChain; generated code uses LiteLLM)
+langchain
+langchain-core
+langchain-openai
+langchain-anthropic
+langchain-google-genai
+langgraph
+litellm
+openai
+pydantic>=2
+# Data
+pandas
+pyarrow
+duckdb
+# Worker sandbox
+psutil
