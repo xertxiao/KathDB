@@ -3,7 +3,7 @@ regardless of ``fn_coarsening``."""
 
 from __future__ import annotations
 
-from kathdb.parser.parser import ActionNLParserWithFunctions
+from kathdb.parser.parser import ActionNLParser
 from kathdb.parser.response_schemas import (
     ActionItem,
     ActionItemWithFunctions,
@@ -66,7 +66,7 @@ def _fn_response():
 
 def _run_draft(fn_names, *, fn_coarsening=True):
     """Drive _draft_sketch_node once; return (captured_prompt, captured_schema)."""
-    parser = ActionNLParserWithFunctions(
+    parser = ActionNLParser(sketch_with_functions=True,
         clarification_llm=None, sketch_llm=None, revision_llm=None,
         fn_manager=_FakeFM(fn_names), fn_coarsening=fn_coarsening,
     )

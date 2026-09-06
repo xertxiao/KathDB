@@ -6,8 +6,9 @@ import pandas as pd
 import pytest
 
 from kathdb.executor.codegen.codegen import CodeGenerator
+from kathdb.executor.executor import Executor
 from kathdb.executor.codegen.prompts import _format_output_schema_block
-from kathdb.plan_gen.plan_node import FAONode
+from kathdb.plan_gen.plan_node import FAONode, topo_layers
 from kathdb.worker import KathDBWorkerExecuteError
 
 
@@ -55,14 +56,15 @@ class _FakeNode:
         return ctx
 
 
-def _make_code_gen(**kwargs) -> CodeGenerator:
+def _make_executor(**kwargs) -> Executor:
     # LLMs are never invoked on the infra-error paths under test.
-    return CodeGenerator(
+    code_gen = CodeGenerator(
         generation_llm=None,
         diagnosis_llm=None,
         revision_llm=None,
         **kwargs,
     )
+    return Executor(code_gen=code_gen, save_functions=False)
 
 
 # ---------------------------------------------------------------------------
@@ -71,14 +73,14 @@ def _make_code_gen(**kwargs) -> CodeGenerator:
 
 
 def test_execute_with_regen_refetches_worker_per_attempt():
-    cg = _make_code_gen(max_retries=2)
+    ex = _make_executor(max_retries=2)
     mgr = _FakeManager()
-    cg._worker_manager = mgr
+    ex._worker_manager = mgr
 
     # worker-1 dies with a framing error; worker-2 succeeds.
     node = _FakeNode({"worker-1"}, EOFError("Worker connection closed"))
     ctx: dict = {}
-    out = cg._execute_with_regen(node, ctx, layer_idx=0)
+    out = ex._execute_with_regen(node, ctx, layer_idx=0)
 
     assert out is node
     assert node.seen_workers == ["worker-1", "worker-2"]
@@ -87,18 +89,18 @@ def test_execute_with_regen_refetches_worker_per_attempt():
 
 
 def test_execute_with_regen_static_worker_backward_compat():
-    cg = _make_code_gen()
-    cg._worker = "static-worker"  # no manager: static worker= path
+    ex = _make_executor()
+    ex._worker = "static-worker"  # no manager: static worker= path
 
     node = _FakeNode(set(), RuntimeError("unused"))
-    cg._execute_with_regen(node, {}, layer_idx=0)
+    ex._execute_with_regen(node, {}, layer_idx=0)
     assert node.seen_workers == ["static-worker"]
 
 
 def test_run_requires_worker_or_manager():
-    cg = _make_code_gen()
+    ex = _make_executor()
     with pytest.raises(ValueError, match="worker or worker_manager"):
-        cg.run({}, worker=None, worker_manager=None)
+        ex.run({}, worker=None, worker_manager=None)
 
 
 # ---------------------------------------------------------------------------
@@ -107,37 +109,37 @@ def test_run_requires_worker_or_manager():
 
 
 def test_timeout_retries_same_code_without_regen():
-    cg = _make_code_gen(max_retries=2)
+    ex = _make_executor(max_retries=2)
     mgr = _FakeManager()
-    cg._worker_manager = mgr
+    ex._worker_manager = mgr
 
     # diagnosis_llm is None: any regeneration attempt would raise.
     timeout_err = KathDBWorkerExecuteError("n1", "worker timed out after 5.0s")
     node = _FakeNode({"worker-1"}, timeout_err)
-    out = cg._execute_with_regen(node, {}, layer_idx=0)
+    out = ex._execute_with_regen(node, {}, layer_idx=0)
 
     assert out is node  # same node, same code
     assert node.seen_workers == ["worker-1", "worker-2"]
 
 
 def test_infra_error_exhausting_retries_raises():
-    cg = _make_code_gen(max_retries=1)
+    ex = _make_executor(max_retries=1)
     mgr = _FakeManager()
-    cg._worker_manager = mgr
+    ex._worker_manager = mgr
 
     node = _FakeNode({"worker-1", "worker-2"}, EOFError("dead"))
     with pytest.raises(EOFError):
-        cg._execute_with_regen(node, {}, layer_idx=0)
+        ex._execute_with_regen(node, {}, layer_idx=0)
     assert mgr.calls == 2  # one fresh worker per attempt
 
 
 def test_is_infra_error_classification():
-    assert CodeGenerator._is_infra_error(EOFError("x"), "x")
-    assert CodeGenerator._is_infra_error(BrokenPipeError(), "")
+    assert Executor._is_infra_error(EOFError("x"), "x")
+    assert Executor._is_infra_error(BrokenPipeError(), "")
     timeout = KathDBWorkerExecuteError("fn", "worker timed out after 3s")
-    assert CodeGenerator._is_infra_error(timeout, timeout.underlying_error)
+    assert Executor._is_infra_error(timeout, timeout.underlying_error)
     genuine = KathDBWorkerExecuteError("fn", "KeyError: 'col'")
-    assert not CodeGenerator._is_infra_error(genuine, genuine.underlying_error)
+    assert not Executor._is_infra_error(genuine, genuine.underlying_error)
 
 
 # ---------------------------------------------------------------------------
@@ -159,7 +161,7 @@ def test_topo_layers_dedupes_diamond_duplicates():
     root = FAONode(op="logical_plan")
     root.add_child(join)
 
-    layers = CodeGenerator._topo_layers(root)
+    layers = topo_layers(root)
     flat = [n.op for layer in layers for n in layer]
     assert flat.count("scan") == 1  # executed exactly once
     assert sorted(flat) == ["join", "left", "right", "scan"]

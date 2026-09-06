@@ -5,7 +5,7 @@ from __future__ import annotations
 import pandas as pd
 
 from kathdb.executor.codegen.codegen_tree import FAOExecutableNode, FAOFunction
-from kathdb.executor.executor import decide_persistence
+from kathdb.executor.persistence import decide_persistence
 
 
 class _ExplodingLLM:
