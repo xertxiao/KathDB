@@ -1,0 +1,2261 @@
+diff --git a/files/additional/data/mmqa_albums_sf400.csv b/files/additional/data/mmqa_albums_sf400.csv
+new file mode 100644
+index 0000000..f1d247d
+--- /dev/null
++++ b/files/additional/data/mmqa_albums_sf400.csv
+@@ -0,0 +1,401 @@
++row_id,image_filename,album,subject,has_people
++0,1sz0kf8wcmj0q8n3pu6mg61gl158vvz1.png,1001,logo,False
++1,6zpijbg5jv4jftpftpmla6xbizne28d9.png,1001,logo,False
++2,42c88eafedfab5203c72e1d2ec1c2f37.jpg,1003,racetrack,False
++3,117d500aaa630023c4038b8268b309c0.png,1001,logo,False
++4,5588a1833b8fa95fe1b0ed520e447d64.jpg,1003,stadium,True
++5,antbx4oxst0z5o6pe2g1thrjr0dz073j.png,1001,logo,False
++6,cwncgabxti09zmf36t4phvaz1xzv10wu.png,1004,logo,False
++7,nqr1pjql5qs3dp8rz2a4zzq7rn0xyp6k.png,1004,logo,False
++8,0a84d1ca0d6376346b5ee794cb687022.jpg,1004,album cover,False
++9,0dfdd88b3997447152d8d2416dc80a0f.jpg,1002,man,True
++10,0ceb4f8b45492cb830d8f2643254e7d5.jpg,1000,movie poster,True
++11,0bc7fba048c6f2101ab32ec02df0843c.jpg,1000,movie poster,True
++12,0d29eeace2912df2a95dd02f9eb0de29.jpg,1004,baseball card,True
++13,0b896bf6648d7daabfed0f5ea523139a.jpg,1000,movie poster,True
++14,0bc757a3f0e219dbd49307b224cff6bd.jpg,1007,ice skaters,True
++15,0deb5d3218ee142a595159b5304288d5.jpg,1002,man,True
++16,0cde0f78aff5d45d78caf0efaf7b36a7.jpg,1000,movie poster,True
++17,0b096ad201e0ef7616286670af4fc0cf.jpg,1002,man,True
++18,0a9e7c7ee4e45f34b855caa45c908206.jpg,1004,movie poster,True
++19,0af4bb1902694e26edad95fa9709076b.jpg,1004,video game cover,True
++20,0a8895d8a891dbdb2c95e924166a3af9.jpg,1004,movie poster,True
++21,0a0f05cf41386bd3958446445f291b7a.jpg,1004,stadium,False
++22,0b65183e903c52cf09c9a41f22263967.jpg,1002,man,True
++23,0a720424d8dd3acf1f542ad33c63741b.jpg,1004,manga cover,True
++24,0e048baeaf94df04e165aefb910f9b33.jpg,1009,tennis player,True
++25,0c34865a462bf9d53f92f4a81b0435c9.jpg,1004,movie poster,True
++26,0e27ee6dbfa773b22faa597e1af7c6a7.jpg,1003,canal,False
++27,0ba7be350787e3f51886330a8a22cd3b.jpg,1009,man,True
++28,0b8133283ccdd397b56b2b692e6bb7b1.jpg,1004,logo,False
++29,0c8002e7c5a5d58d1d8154a8e91ca19c.jpg,1009,man,True
++30,0da82c48deac53ab29e88f791d6f15bc.jpg,1004,album cover,False
++31,0b4857a11e1e73aaa4006076c8c5b31f.jpg,1009,man,True
++32,0a0ec6d51bb5d9059e193af79d7f4139.jpg,1007,circuit board,False
++33,0a68ec2fbbe157f0a42cb7870dbc0104.jpg,1004,flag,False
++34,0c49a94dffb487469647e6208f215fb0.jpg,1004,movie poster,True
++35,0dc97045567153d25d6a9a6336e8d266.jpg,1008,bird,False
++36,0c0d07c53688b008e74d643157b76c57.jpg,1004,movie poster,True
++37,0a43c7d947779f8400bb73833e629fa6.png,1004,logo,False
++38,0a515cfc4f8bb18d9f305e0265943359.jpg,1009,hurdler,True
++39,0aec977d275dee3ddf6348f8b4430a13.jpg,1008,cricket field,True
++40,0a07c6359d1f5dd53cfa200f82ecd427.jpg,1007,man,True
++41,000be905aa647e2aca193a74296e2679.jpg,1003,street,True
++42,0b677cae825bb9a2ccfd2d32b0bd6442.jpg,1007,ice skaters,True
++43,0b60dceccc1689e61a6a828c50c2d323.jpg,1007,man,True
++44,0a1726af58081f8b89ca56ff68995372.jpg,1009,man,True
++45,0dcd53dfb83416b96db13e66965aeb29.jpg,1004,book cover,False
++46,0a07ac0d47552b00ab6c3b5fa40b9006.jpg,1004,clapperboard,False
++47,00e045cfe25f58c8ccc98fb93bde189d.jpg,1003,man,True
++48,0afa938630fd2abf51a465e99cce57b7.png,1004,logo,False
++49,0b6c812c6975cc0ae73ca891e44127f5.jpg,1003,stadium,True
++50,0de464e32eb23b30ab3f467348c496fd.jpg,1003,sign,False
++51,0af6597ac12d686e67d1dabed8b6ba47.jpg,1003,theatre,True
++52,0e33da3b0ad36e3ab3bfe35feeb3a5ac.jpg,1004,hand,False
++53,0c34bff44abce5d1bb228acf65036282.jpg,1004,movie poster,True
++54,0a725f7ebc7dea3e37c8522f013934c3.jpg,1008,men,True
++55,0d08cdba23ca49810facbcf362a771ff.png,1009,man,True
++56,0d7f126e2080f9bf32112dab1128234f.jpg,1004,logo,False
++57,0c6a40f9d9c154f68a23c900b553e570.jpg,1007,stadium,True
++58,0b5a90e6f4f223d9f8692c7123add440.jpg,1007,man,True
++59,0e0e4355fda95ee2777dbe271a4f7d23.jpg,1004,movie poster,True
++60,0b6540bb760c7b43330ea253b971758c.jpg,1009,man,True
++61,0a80bdfac7e090ca4b13503b825d5e22.jpg,1007,boxer,True
++62,0b31671cead513b002a8703059905d2e.jpg,1007,athletes,True
++63,00c148cca18e7011fc2cff2b9ef8659f.jpg,1004,logo,False
++64,0af228e1aaedd5e1eb72a73dd8985d78.jpg,1009,football player,True
++65,0c615f0550dcf1d2c8839c6400edfd4a.png,1004,football club logo,False
++66,0ba08dd0f80f22a51f5aff1b1e65cbf1.png,1004,flag,False
++67,0be6a1b0c08b243849bfd65ef396f382.jpg,1003,runner,True
++68,0a1a62d8a1ce68aa80bf882d363f4226.jpg,1007,football player,True
++69,0c6ca961fb8b16ac8d9ca56ba5bb78d2.jpg,1007,hockey player,True
++70,0a80ba8f5fab80388fcada37bd24fdcf.jpg,1003,car,False
++71,0a259908f0d108cd11a98a884a10b33c.jpg,1007,woman,True
++72,0a105658ab234e8d1ae1791095696189.jpg,1009,man,True
++73,0a13134ca556ed97736997d990db5d1b.jpg,1007,man,True
++74,0a8f016d03294a01e4945813b175adc5.jpg,1004,movie poster,True
++75,0e7a758767fca6e7fc60e7760db80ee1.jpg,1005,movie poster,True
++76,0e428fd848ba49bf388935fdcafe1b5c.png,1004,logo,False
++77,0a8338eedd3ebeced9ad26a9bb98a642.jpg,1005,logo,False
++78,0d74d4bc82427155a965d2aa46c3eb63.jpg,1005,logo,False
++79,0e29cbe92e1a78243401a2745543ad53.jpg,1009,man,True
++80,0dea827c11ecbcf61a1241db81790f07.jpg,1007,goalkeeper,True
++81,0d7df28e4ee2e2e33145f4496a3be52b.jpg,1005,movie poster,True
++82,0c40c902d12029635fb05ef55769fad4.jpg,1007,man,True
++83,0ca1c277ae26c29558f2b897eaa5276c.jpg,1005,movie poster,True
++84,0ac83693b42f451f27c992a887c38887.jpg,1004,dolphin,False
++85,0c2eca70f627e3995b6845d64a12ca9b.jpg,1003,building,True
++86,0d180524ae46b8e2a5912cf3a393b3ee.jpg,1008,horse,True
++87,0aa9639a7093712739bc1d59aae7ac75.jpg,1003,building,False
++88,0dc05004e799f8029d7ad4c0c84e5a71.jpg,1003,storefront,True
++89,0dc339a544c3f404fbd1d038754df55c.jpg,1004,album cover,True
++90,0b1317d6f83f8bb039b5558287a7f398.jpg,1004,folder,False
++91,0b5a5f9dc161b57984f70c400fa7acbd.jpg,1008,cricketer,True
++92,0c8db378aca1e244672cf0bd1492aa84.jpg,1003,amusement park entrance,True
++93,0bbdf213342a3821cf7c88790047f091.jpg,1004,cobra,False
++94,0d5d44555cdcc54b9d7f59cd04316bc9.jpg,1008,girl,True
++95,0dc2037725d0ebd9f0ba5aefde8b814d.jpg,1005,movie poster,True
++96,0e3de9646374eeda7711587d61206b8f.png,1005,logo,False
++97,0d2bc676111fc9af4955e41c4035efa9.jpg,1007,band,True
++98,0c9cc85f5bf569a23c443903df68be1d.jpg,1003,man,True
++99,0c7000dc04ab0053cffedab9faec2851.jpg,1005,logo,False
++100,0d93e7e0fdaee539507ac2d09dc93599.jpg,1005,logo,False
++101,0bb8b18deb156d9ece73e9660eec59b9.jpg,1005,movie poster,True
++102,0db43becf71e08ff0b99ec74197f699d.jpg,1004,video game cover,True
++103,0c7303f1d7606f4383d17ca3e5ce5463.png,1004,video game cover,True
++104,0c3e7195624ff114dac48423c6944a65.jpg,1005,logo,False
++105,0befd2ba570e828fd9d6d8c4990af3f6.png,1005,logo,False
++106,0b5b6c90c96adfb365057f3b2fd4f9c0.jpg,1009,football player,True
++107,0b0bfbfc09cf2af68cc8f76ec834c71b.jpg,1005,logo,False
++108,0bdad46c8d16e2ada037e6f3f418b2c3.jpg,1007,performers,True
++109,0a7ad8727ebeccfc16a44c9b68d4d30e.jpg,1005,movie poster,True
++110,0b66d210074be5881fea3324aacb6749.jpg,1005,movie poster,True
++111,0a079f2342948941ce927a063be4242f.jpg,1008,garden,True
++112,0b7f96ba229219c267f9fddd66eb9da3.jpg,1009,man,True
++113,0aa3794a64a4e5a965406bf7eec17f23.jpg,1004,football uniforms,False
++114,0b7c474910fe7a6a5c278aab05d7d797.jpg,1003,car,False
++115,0c4be285733b3edc6794639d8e45b07f.jpg,1004,chemical structure,False
++116,0c4b3b5ed365d7f86df86e93e10f4468.jpg,1007,dolls,True
++117,0dbf03b8398f44c3fd2509e9f0523517.jpg,1005,movie poster,False
++118,0cfaa3d5a46a430485706f811b3d2f55.png,1004,trophy,False
++119,0c5bc5a0833ee131ece40360538ae07f.jpg,1009,man,True
++120,0d51b6301fe27bc1b178563b6ad7250b.jpg,1005,movie poster,False
++121,0bd43d557c983bbe9b721285d5dac484.jpg,1005,movie poster,True
++122,0c5483244a0ce17b436cd44bec84e073.jpg,1009,man,True
++123,0b3e95eedbd62ffd4ac0e23f7c6c260f.jpg,1009,tennis player,True
++124,0dbacde867c9a9809e7120bc22057417.png,1005,logo,False
++125,0c8a48899c5f913bb52cc3eff1c00001.jpg,1009,tennis player,True
++126,0a3a47658239ae8209094020669304c0.jpg,1004,album cover,True
++127,0d8e6a20cbc825f5f029ddfd964612e2.jpg,1007,man,True
++128,0a9b21fb6063bf4260d2620fe2ab567a.jpg,1009,man,True
++129,0b8d13dd67ce0b7aa60c9bd3db75e329.jpg,1008,rugby player,True
++130,0aeecff2baa8dd026583ebecfa5dc8d1.png,1007,movie poster,True
++131,0cebda1db882c5a7e05ef0a74896a2bb.png,1005,logo,False
++132,0a48529a8a90587432f4a052ed68caa8.jpg,1005,movie poster,True
++133,0a283377371eac9ecc8ab63c3268987a.jpg,1007,boxers,True
++134,0e3bd1f5e63abf955b3f902bdc0add68.jpg,1007,man,True
++135,0c2ca92260f58eceef80371b552068f2.jpg,1008,amusement park,False
++136,0ce1a7a4ce9f000bf9f4cba5a6aeebd3.jpg,1007,man,True
++137,0b01a323cf0e7430ce16cecf893aad27.jpg,1009,race car driver,True
++138,0d286304cc65b82c5e010b3619563720.jpg,1004,album cover,True
++139,0c07b9f6d0f50a82a78bc8ad5a0d4e1d.jpg,1007,man,True
++140,0bfa5921037a2dbb8301a98a22448f0f.jpg,1007,movie poster,True
++141,0dc8667808e511ec3d525aff0e221b93.jpg,1007,man,True
++142,0d57ac4779595d7684895d71ce3b05ae.png,1005,logo,False
++143,00b03d91360bbe23db5c83ad2f0e4c93.jpg,1008,rice field,True
++144,0b49088b135bd943a28b4af9e028fdd5.jpg,1003,buildings,False
++145,0c244e2fecb4d1098913decf55571005.jpg,1005,logo,False
++146,0c8ed84defc9a7731e04bd39300137f1.jpg,1004,flag,False
++147,0caf09a1166b2aae07b4d0f67568c404.jpg,1007,man,True
++148,0a3fde4c90a026601b255516dc13f4e9.jpg,1008,man,True
++149,0bccae18d1bc23b9e560891520b2c3dd.jpg,1005,logo,False
++150,0c7da7e99fc4453459b5bcb02950c87b.jpg,1005,movie poster,True
++151,0b5af60d9d420f46a7ef463394232f77.jpg,1005,logo,False
++152,0cf1b157aae987457da235330ac19794.jpg,1009,baseball player,True
++153,0a2c3d9697a848dec1f0fc055990d657.jpg,1005,movie poster,True
++154,0dcef8612118d0b41e55d3786f1fa59c.jpg,1007,man,True
++155,0e665fa655a7b6c60a4ef7378f9f2382.jpg,1005,movie poster,True
++156,0e55b397c7770893544eb92ddc680b23.jpg,1003,car,False
++157,0baca2a1327078b6bce3855e9b6552ea.jpg,1008,golf course,True
++158,0a1a87e1ab7ef32f2ce4558e9bd203fb.jpg,1004,record label,False
++159,0d6293c5fac813c240e7efd3b1d59d1a.png,1005,logo,False
++160,0b6fbaf4184419ae1bee61fc87a3ab7d.jpg,1007,skater,True
++161,0d2a42ad9a8d7cb63d92301462adb06a.jpg,1005,logo,False
++162,0d3b0da47a86471cce26880c3b85605f.jpg,1005,movie poster,True
++163,0e5d8b7d8e669f374b06ed13a250e741.jpg,1005,movie poster,False
++164,0a872997ac94c2e1cc277dca629c1b4f.jpg,1005,movie poster,True
++165,0a8bfebce699bae99559895ef8bc93ab.jpg,1008,helicopter,False
++166,0d1bfdfd7ba8dcd9dc022e2060abffac.jpg,1009,man,True
++167,0e0c06f94e03be263a5500cfef889384.jpg,1007,stadium,True
++168,00b86560638c44ec9fa4066a02378d65.jpg,1007,man,True
++169,0baa323629142984bf372ab072a356df.png,1005,logo,False
++170,0bdbc913448b643b305e026ba098d2c8.jpg,1008,band,True
++171,0d42d1dff1a9e624490c988bd7aeabb0.jpg,1005,movie poster,True
++172,0ba465c83ad5fdec6f4a3a3cb888729d.jpg,1005,movie poster,True
++173,0b34951a04531c28ee1a64b24409c4f4.png,1004,county seal,True
++174,0a66fffe2389f297384decd66f0bc21e.jpg,1005,movie poster,True
++175,0c684e9f53897477449875e676448990.jpg,1003,cat,False
++176,0e4c5d014889af41fc601fae22483da7.jpg,1009,woman,True
++177,0d71fd43ff00776f96a3b453fc635941.jpg,1007,man,True
++178,0a62022560c01fb36005ef5b1d95556d.jpg,1004,coat of arms,False
++179,0ad77ac5d701e780b3d080eb8f378573.jpg,1005,movie poster,True
++180,0b0e91c9532f6317d02cbeacb2aab092.jpg,1007,man,True
++181,0b95ebf0a69098cd3d760ccc9fb59623.jpg,1008,horse,False
++182,0aeaaaf85d126a9e6a816c0b18f20acd.jpg,1003,movie poster,True
++183,0d3d7fa68923cd1fc989b3ff599d343e.jpg,1007,man and woman,True
++184,0de4ae06fca275bd4646dcfed89aa1d4.jpg,1004,album cover,False
++185,00e853c44f2019ad96bd63397f2e1891.jpg,1003,bus,False
++186,0a2143c1083e6baa672e51e58db4afb4.jpg,1007,band,True
++187,0ba3594652e6b91ab9ed7ca0ce5c897e.jpg,1004,video game cover,True
++188,0ba86aea4eb0e6ca527120a78d2935f9.jpg,1005,movie poster,True
++189,0c82dd9e77b50088cd2f6ed6c223169c.jpg,1005,logo,False
++190,0ad5ac77692a62e9f7d01f06f0af4955.jpg,1007,woman,True
++191,0d67a3e20fb8748df737f766d0a799c8.jpg,1003,car,False
++192,0a85811d29a4251b442fc9b933656c57.jpg,1007,crown,False
++193,0ab0a3c2765e80401c43219311397de2.jpg,1008,planet,False
++194,0b4b7461b5f05f22b3834dd612ae61ce.jpg,1004,title card,False
++195,0d4d0bb0554ff67f3b459b6c79e809cf.jpg,1009,woman,True
++196,0e42460f616dfc8c7d36bec178071724.jpg,1009,man,True
++197,0bb28c519f83f502b8962d75652f7dab.jpg,1007,award show,True
++198,0e3f1257ff395ce5b4e9edbb5b769071.jpg,1003,ship,True
++199,00dbace62392ba32e63ce16a1942d63a.png,1004,university logo,False
++200,0e2952ac37cfbcab72865fb04c4301f3.jpg,1003,buildings,False
++201,0c5931e8d612d71b1a8a378e8f463314.jpg,1005,movie poster,True
++202,0aa0aca634022d522ccdbc2f556d7ce0.jpg,1003,marathon runners,True
++203,0bf1db90f5c2d5b1cf27a0e17903befc.jpg,1007,painter,True
++204,0baf1024b14046d9e795576036551a96.png,1005,logo,False
++205,0a059b906f295c40940cbc813c7da3bc.jpg,1007,man,True
++206,0e1b272b8ab8b3e9e37f03b824ba0860.jpg,1005,movie poster,True
++207,0d6c9e5b5bc0c0b82e847e4519922c0e.png,1005,logo,False
++208,0caf760d998e70dee73ec58afb971ee1.jpg,1005,movie poster,True
++209,0aeb5fb2e2250af388b94ae6279661db.jpg,1009,cricketer,True
++210,0c82b4de98a6bb0995b1d6506cb24ed5.jpg,1007,man,True
++211,0d03699bfc51444df6ca45c9f7566a55.jpg,1009,cyclist,True
++212,0ad1524d22a56582dbca591f6fa8f68a.jpg,1008,building,False
++213,0ce0118fe47390092da1e8137d804ccf.jpg,1004,poster,True
++214,0d057428fb6a3fd99797cefdb845ef11.jpg,1004,album cover,False
++215,0aac730e290dc557b97388d8513361de.jpg,1005,movie poster,True
++216,0ad1f836472513111fe500a49ada793e.jpg,1007,man,True
++217,0d1c4c9948e98d942d0a30e187025851.jpg,1009,woman,True
++218,0ddb80d9c64755e16242292bcd387657.jpg,1005,movie poster,True
++219,0b5d98dc15beff56ea08897d5d21d0b0.png,1005,logo,False
++220,0e5cfca2c01a6c0ca4c7765af4e4a460.png,1005,logo,False
++221,0a7fd4894ca972346066541d16faea1b.jpg,1003,building,False
++222,0d5202bd525423d5b432ba54465c8eaf.jpg,1007,wrestlers,True
++223,0cfcc112594f58561faa23013b17d685.jpg,1008,motorcycle,True
++224,0d35dc269afdc44911573d3c4d337b4d.png,1005,logo,False
++225,00d63695342186ddbf6d296ea6f43e22.png,1005,logo,False
++226,0b6d040371da4914a4b59e9a872985e5.png,1005,movie poster,True
++227,0ccab8b174c90448845ca2a6f742c781.jpg,1004,album cover,False
++228,0b090c757366cb2a60cb9a81c4a08357.jpg,1005,movie poster,True
++229,0cf7cabfdc7bc3c098bab31bd38882c6.jpg,1003,car,False
++230,0e588abf26b1fba7d94e502ad20fd5f4.jpg,1003,street,True
++231,0cdbe38cdf213b9f46182f98230aa5f7.jpg,1004,tiger head,False
++232,0cd4507f420c23739df18f785ed1a921.jpg,1005,movie poster,True
++233,0ca32fdeb2a908424758f9e40870e5e0.jpg,1007,bust,False
++234,0c89902ca9bcb707f7987f67d878e6e9.jpg,1004,flag,False
++235,0a11ac1decd86a30357c342532652129.jpg,1005,logo,False
++236,0b7e7f0f0dbb46602b5e7871c09d7740.png,1005,logo,False
++237,0ce620c80d56aaf8b3b8853a39343439.jpg,1003,soldiers,True
++238,0dba42449d186d81120de3e4d7a94a9b.jpg,1005,movie poster,True
++239,0a8a39f17650fc1b367b4a3ec5ee0037.jpg,1007,man,True
++240,0b74c9c0a3c61752c24297a21d5bfac1.jpg,1005,movie poster,False
++241,0c5cff5ebaa0eb0d1278cdcfa57477dd.png,1005,logo,False
++242,0cafa3eb6ea3862b276fa5a664b2b185.png,1005,logo,False
++243,0a7a3ccd280b349af29e26ac16ceb613.jpg,1004,magazine cover,False
++244,0cc7f8ff4288b0ae23bcdec0c1dc4f9c.jpg,1008,horse,True
++245,0a20ce68105145a3db07d366ff4161bd.jpg,1004,clapperboard,True
++246,0b436dd38a6242908996067c6c7892e0.png,1005,logo,False
++247,0c12ba99ae316e09961a54d1706c7607.jpg,1005,movie poster,True
++248,0b201aba48538c8cae3ec4bdb5b4917c.jpg,1004,flag,False
++249,0b74b88b6ad52bb12b2a41bc060a7166.png,1009,man,True
++250,0afebc12ea908c36ce09263ce54b79f9.jpg,1007,woman,True
++251,0e41e0796e07aa895a431a598b08d6f3.jpg,1008,village,False
++252,0b7237d6d94c1fe767f7bb573e985592.jpg,1008,football players,True
++253,00b5283f19a8a7e0c94fbb6c28c09c96.jpg,1003,buildings,False
++254,0d030ee12e34ac380019e62839eab8fd.jpg,1005,movie poster,True
++255,0de9582476fa1d59203f20f165f25705.jpg,1009,performer,True
++256,0b64da4457889609066ca7a73217c03d.jpg,1004,album cover,False
++257,00a21ad24a847b556b891bec50476590.jpg,1005,movie poster,True
++258,0b8d0ac0e678bff5decc177f80b98d0c.png,1005,logo,False
++259,0e5ef5756c89f15f43bb002c748fad6f.jpg,1004,yellow card,False
++260,0ccba801b3d66c9738c7ed6e39d1839e.jpg,1005,logo,False
++261,0d49c5e7c6484b9e4888ae8be2e76478.jpg,1007,tennis player,True
++262,0a56c25d5e75acc61ab878ab764228b8.jpg,1005,movie poster,True
++263,0cf7123ca507da9995de992b0daa51cc.jpg,1004,yellow card,False
++264,0a6ab6bb33d4679c7acec25b2a7a1860.jpg,1003,buildings,False
++265,0b39fea8d39ae954b9fabbb297e5be5a.jpg,1005,movie poster,False
++266,0e0a4798acf5205c7f65cc7199cb8dd1.jpg,1007,band,True
++267,0b7b1e2bb45373134a4c1e94dd7ee85e.jpg,1003,building,True
++268,0dc6c2220fce62e04aefd8e524df33b2.jpg,1007,man,True
++269,0c574f18a6795cbf837c1a4b5dd2922f.png,1005,logo,False
++270,0d6d23c93b4fe21259b25c627e294ee0.jpg,1007,person,True
++271,0c9a041aaba9704501eb67bdd323a76a.png,1005,logo,False
++272,0e16ef2fccef0760ef3f920221cb2e67.jpg,1007,hockey player,True
++273,0a6cd554d584830fdfd52189c8bfe207.jpg,1007,football player,True
++274,0e449b305012d34296eb016823d4cc9c.jpg,1007,man,True
++275,0e5f3e283676560d6d04a79c9d1d8b4e.jpg,1005,movie poster,True
++276,0bd385e5663ad2a011ce78acc48c2323.jpg,1004,coat of arms,True
++277,0da55b6830ad4eb0b76a5e46c549e343.png,1005,logo,False
++278,0ab56c64ba191cc6243eb166fd986990.png,1005,logo,False
++279,0c19a42f51236a8521257f7af96f282e.jpg,1004,book,False
++280,0dfcd97f590a15349202dc00348f6263.png,1005,logo,False
++281,0c21fb6a8b21f05584313acd708c3702.jpg,1009,woman,True
++282,0d32059d8376372fcbbb3512bf86a19d.jpg,1005,album cover,True
++283,0e372ef850391ab72ed5ae8bdedc90bb.jpg,1003,car,False
++284,0a47f9f48aefa5d78a9a6b626bdbadda.jpg,1007,basketball player,True
++285,0b0b4e5ab6fc958c133343cf71faded7.jpg,1005,movie poster,True
++286,0be7a03351a759a5ce0c202b3f0dd12b.jpg,1005,logo,False
++287,0b477b59301545d1448789cf793be3b7.jpg,1006,movie poster,True
++288,0bf9765eedd342330a29038a7f8c3542.jpg,1006,movie poster,True
++289,0d941074ec5050ee06fe1dbe52214835.jpg,1006,movie poster,True
++290,0c37a924cf2dfc0932397b043c09dadd.jpg,1007,band,True
++291,0aac49ab17145acc4c0e6ecd9dc4d987.jpg,1008,ruins,False
++292,0b109a0c5637463897eb965b9da09e5f.jpg,1005,logo,False
++293,0e4fc151817888f808b35fae241e907e.jpg,1007,chess player,True
++294,0bc3220cdd1268a13fa4cd3e355aea98.jpg,1004,coat of arms,False
++295,0e5f707a4c7a3906ff2f6b95114aa3a0.jpg,1008,church,False
++296,0e4920c18faa47c6ba880da4561d9338.jpg,1006,movie poster,True
++297,0c262c4c7f338c6120a4648298dbd166.png,1005,logo,False
++298,0b9b06c9b1ab7e23f6cb7832e6d6e5ca.jpg,1007,hockey player,True
++299,0acd5b89676305f392adadd39c799050.jpg,1003,building,True
++300,0b79a24f25d3d0dc2fcac593b1a66950.png,1006,logo,False
++301,0c17f5b0a8bd80adcdf6e12ff7089ac4.jpg,1006,movie poster,True
++302,0c920b6a28b36ea17e0d6b0b60a2b157.jpg,1004,baseball field,False
++303,0ca9a2e87dedb4a70b80b14142b4afb7.jpg,1006,movie poster,True
++304,0b76c1df946cb51e3c97a27567729d11.jpg,1006,movie poster,True
++305,0b3b608ba2bf35865660df51510e8fe1.jpg,1007,man,True
++306,0b0156dd7fd2f151446bf9b9cd95b20c.jpg,1004,flag,False
++307,0b363eff1a64d465db59c595bf5d8ec3.jpg,1007,man,True
++308,0e9d4ac664b09951e8b1aef5b03ceaad.jpg,1003,fair,True
++309,0cc818bb12c8d17495d9d97c3bbbb0c3.jpg,1004,seal,False
++310,0a8d7e6efd2fe21f6fa31e6ddab68727.png,1004,stanley cup logo,False
++311,0c77b461ae2a62b23f9e80bf84986acb.jpg,1004,tv show poster,True
++312,0e919d605b0ca87313cf90c3a6ecbec3.jpg,1005,album cover,True
++313,0cc7714b04c7c33e6ba1ca4bd1676d57.jpg,1009,man,True
++314,0bf7f9b86b3382de79f647bd154dabcd.jpg,1003,buildings,False
++315,0b94245596940d1ab44df4bf05ce6e42.jpg,1006,movie poster,True
++316,0a5634a76548f5f23d6b9fa149fa5123.jpg,1004,video game cover,True
++317,0a90891a0035fff9b35ddff1a9f1e736.jpg,1009,man,True
++318,0dba13fee0cdd3205babbae08b31f33a.jpg,1007,actor,True
++319,0db17777402b71b0fb0172ccbcd0e3a4.jpg,1007,woman,True
++320,0bffcf98b1f2ff995c6af0a98ecec1a4.jpg,1008,snake,False
++321,00c48ead0159eed24b04c95f296500c0.jpg,1003,buildings,False
++322,0ac88631a85503221a085e55bba155a1.png,1006,logo,False
++323,0c8d761b9f87e836e76c6bc5669fdab6.jpg,1006,logo,False
++324,0d6a0fee5648e80769bd312ef2872ce3.png,1004,university seal,False
++325,0e5fd5ad2f0e486b9f8e3d8980f95612.jpg,1007,crematorium,False
++326,0b448d2e85da8af9a3984cb1a6b50f45.jpg,1009,tennis player,True
++327,0c21c34914735826da603a2cfc57eb43.jpg,1007,soccer player,True
++328,0c0b1a0ae1ef0c75528a3f01348a6426.jpg,1004,superhero,False
++329,0af9e872e3797d06111a70eef390a695.jpg,1009,man,True
++330,0e20a0bee3bce9fd2c25a261c3c16914.jpg,1006,logo,False
++331,0b2a5e855b18ed3332ce4198bb16d4e4.jpg,1006,logo,False
++332,0b43e3ebfda3d6f8eec8b157ca1498c3.jpg,1007,blood cells,False
++333,0cbe3a7d497c97c9877faa395df6b64c.jpg,1007,goalkeeper,True
++334,0c7d52ade71694ced9bb64864d32c7be.jpg,1007,band,True
++335,0d1d7bfb06f5f1047057418921aa179c.jpg,1009,golfer,True
++336,0aa64b40f8d270dca2bba2f32abb707d.jpg,1009,legs,True
++337,0e8dbed154137f8f0e75caa227cc7484.jpg,1007,trophy,True
++338,0c2265dbba201ae06eec7f2255eaafc9.png,1004,football club logo,False
++339,0e6fdf4f42bba660ee707ae6dbb23bb8.jpg,1006,movie poster,True
++340,0afd91f28b0b177384b10941e8daf52a.jpg,1006,movie poster,True
++341,0cbdac91e83919aa347f553c18c716b6.jpg,1003,bus,False
++342,0caea82833847901713af2a8332aef82.png,1004,map,False
++343,0be35d418087acd4f8621fad903179df.png,1006,logo,False
++344,0bf44cd47c202f590ef58e012c52117e.jpg,1006,logo,False
++345,0a02b6a8504630262223d21f801161b9.png,1003,building,False
++346,0e7bfbb0c39b1cfd5d9e415f413c1667.jpg,1007,woman,True
++347,0d9f2d967f1045f6ee9a18bc932e5ca1.jpg,1009,man,True
++348,0a6493f75c461b05843962096961f8f6.jpg,1006,movie poster,True
++349,0bc81103dcb43c0fcb5aecd019ba0298.jpg,1003,stadium,False
++350,0d1cf05cbda0a1fb094f472e85185268.jpg,1004,video game cover,True
++351,0da97a495039e080d6faf40b6c73311c.jpg,1003,building,False
++352,0b05bc867cb47ea8b827e7effe7e08e5.jpg,1006,movie poster,False
++353,0bf8dc8a2ea59458ce518928642251a6.jpg,1007,musician,True
++354,0a4bbf59a19239ca1a43a9cac1ce2c52.png,1006,logo,False
++355,0c81c8b350654d2cf1003227e369fe71.jpg,1007,man,True
++356,0b21304a76268ee3b93a56c28e7f3340.jpg,1006,logo,False
++357,0c491f5fdf8aaa7b3a2b355799952973.jpg,1006,logo,False
++358,0d072f0ef5e83355ebb95e1057be2c3c.jpg,1006,movie poster,True
++359,0cbf55735e7fe9d9bf3cf92bb829ab3d.png,1006,logo,False
++360,00e5bf0ce82a749aa491974fc3dff419.png,1004,coin,False
++361,0c6befd28cb3cbecb46a657d51826b50.jpg,1003,buildings,False
++362,0d9bd9f4c93d700cc1a587930a7e571e.jpg,1004,flag,False
++363,0a259e302f78dde3fca7cacc3e0c64d1.jpg,1007,man,True
++364,0d97085ab2b4051ada84731384e79e79.jpg,1006,movie poster,True
++365,0c89643635b725be571f2eb093c8d08b.jpg,1003,building,False
++366,0ba96539c281339e5a4f48fc9abcf43e.jpg,1006,logo,False
++367,00bc98194ca048f9ab5af3d86a55aeb1.jpg,1006,logo,False
++368,0c3d8beea24c44a6dc82a5eed7c2b203.png,1004,football uniforms,False
++369,0dd1e204dee106509d29927739e8379c.jpg,1007,athletes,True
++370,00ab7c7bbc7c0520c855e6852923ee71.jpg,1007,album cover,True
++371,00d3fb067c30fb0fdbe9ab5779b297c5.jpg,1008,bird,False
++372,0b8086a19bed3628012744f3a7e7acae.jpg,1006,logo,False
++373,0a14b55817df7b297be45413b4353ad1.png,1004,map,False
++374,0cc7e29a24494314ab6b87cab278dd26.jpg,1009,military officer,True
++375,0bfaa418914214344c69f91bff67403d.jpg,1003,sign,False
++376,0cf61ac12a639a18c4a71c211a3133d0.jpg,1009,man,True
++377,0b1eaf0cadce1b185f1c1e179b406eef.jpg,1008,person,True
++378,0a2c278b8143bfd246b82f7029a2811e.jpg,1007,group,True
++379,00e2c0bb3fdac91be384bf5195ec0205.png,1006,logo,False
++380,0c15ba034fb9172ac950cab3cf645bfe.jpg,1003,building,False
++381,0df3be6f1bc935c171a9583bdb399211.jpg,1008,island,False
++382,0a3bf2c032e79a50990a5b681becbf4e.jpg,1007,band,True
++383,0e58a4946998b3f9b8c03e276a785918.jpg,1006,movie poster,True
++384,0c04b6f52120ce9c4122098e99411706.jpg,1003,bus,False
++385,0d038b47fc7a35543509c7d9f717b189.jpg,1003,town,False
++386,0a7ad777907100af0e692c9675b7c9f9.jpg,1007,aircraft assembly line,False
++387,0aa61b89f63e221fb08459533ebc4c6c.png,1006,logo,False
++388,0aaf1ae961ef02548f8bbdad44f141e2.png,1004,poster,False
++389,0a86139ce572199fc2407a51d137639c.jpg,1003,building,False
++390,0cc7c21ed8795f3412159181f0e91bbc.jpg,1007,medal winner,True
++391,00bf9d8d2a3bcac48f8bc46d21fc4928.jpg,1007,woman,True
++392,0bed8ddfd8d2d4d26257f280a0c1057b.jpg,1004,medical logo,False
++393,0cfd65a6d9a5d68ff8a8ae90a82ec189.jpg,1007,man,True
++394,0aefa86401909f13c63af845cc60177c.jpg,1006,movie poster,True
++395,0c6abeae1b528d74281006f1ed657182.jpg,1004,warning sign,False
++396,0b9b87722eb4dac7ebe819bb617ff385.jpg,1003,archway,False
++397,0a1ec81a7db4c1c95f95c5d37a75f060.jpg,1006,movie poster,True
++398,0d9bbb3aba368811625c9501873b4924.png,1003,movie poster,True
++399,0b14a3718339734c11e2c147379b2611.jpg,1004,musical logo,False
+diff --git a/files/additional/make_gt.py b/files/additional/make_gt.py
+new file mode 100644
+index 0000000..9eb9ad4
+--- /dev/null
++++ b/files/additional/make_gt.py
+@@ -0,0 +1,69 @@
++#!/usr/bin/env python3
++"""Ground truth for the album queries (Q5-Q10) from ``data/mmqa_albums_sf400.csv``.
++
++Each image row carries its album and two frozen labels: ``subject`` (main subject,
++a short noun) and ``has_people``. A query's ``ground_truth_rule`` in its TOML file
++names the predicate and the minimum album size:
++
++  subjects>=2   albums with at least two distinct subjects
++  people_mix    albums with at least one people image AND at least one no-people image
++
++Usage: python3 make_gt.py            # print the ground truth per query
++       python3 make_gt.py --write    # also rewrite ``ground_truth`` in the TOML files
++"""
++
++import argparse
++import csv
++import re
++from collections import defaultdict
++from pathlib import Path
++
++HERE = Path(__file__).resolve().parent
++
++
++def load_albums():
++    by_album = defaultdict(list)
++    with open(HERE / "data" / "mmqa_albums_sf400.csv") as f:
++        for r in csv.DictReader(f):
++            by_album[int(r["album"])].append(r)
++    return by_album
++
++
++def ground_truth(rule: str, by_album) -> list[int]:
++    pred, size_min = rule.split(",")
++    size_min = int(size_min.split(">=")[1])
++    out = []
++    for album, rows in by_album.items():
++        if len(rows) < size_min:
++            continue
++        if pred == "subjects>=2":
++            ok = len({r["subject"] for r in rows}) >= 2
++        elif pred == "people_mix":
++            people = {r["has_people"].strip().lower() in ("true", "1") for r in rows}
++            ok = people == {True, False}
++        else:
++            raise ValueError(rule)
++        if ok:
++            out.append(album)
++    return sorted(out)
++
++
++def main():
++    ap = argparse.ArgumentParser()
++    ap.add_argument("--write", action="store_true")
++    args = ap.parse_args()
++    by_album = load_albums()
++    for toml in sorted((HERE / "queries").glob("q*.toml")):
++        text = toml.read_text()
++        m = re.search(r'ground_truth_rule\s*=\s*"([^"]+)"', text)
++        if not m:
++            continue
++        gt = ground_truth(m.group(1), by_album)
++        print(f"{toml.name}: {m.group(1)} -> {gt}")
++        if args.write:
++            text = re.sub(r"ground_truth\s*=\s*\[[^\]]*\]", f"ground_truth = {gt}", text)
++            toml.write_text(text)
++
++
++if __name__ == "__main__":
++    main()
+diff --git a/files/additional/queries/q1.toml b/files/additional/queries/q1.toml
+new file mode 100644
+index 0000000..a486890
+--- /dev/null
++++ b/files/additional/queries/q1.toml
+@@ -0,0 +1,33 @@
++[metadata]
++query_id = 1
++data = "ecomm, scale factor 1000"
++modalities = ["image", "tabular"]
++
++[definition]
++natural_language = """
++Decide what broad kind of garment each apparel item is from its product image only -- not from the product name or any text field. Broad kind means the general category of garment: top-wear (e.g., shirts, t-shirts, jackets, sweaters), bottom-wear (e.g., jeans, trousers, shorts, skirts), innerwear, or similar.
++
++Among brands that sell at least two apparel products, find the brands whose
++apparel products are all the same broad kind of garment -- every apparel item
++they sell falls in the same broad kind -- and that also sell at least one
++footwear product. Return one row per qualifying brand with a single column
++``id`` holding the brand name.
++"""
++# Ground truth: SQL over files/ecomm/data/sf_1000 (keys on the hidden catalog label).
++ground_truth = """
++WITH ap AS (
++  SELECT brandName, subCategory.typeName AS atype
++  FROM read_parquet('styles_details.parquet')
++  WHERE masterCategory.typeName = 'Apparel'
++),
++fwb AS (
++  SELECT DISTINCT brandName FROM read_parquet('styles_details.parquet')
++  WHERE masterCategory.typeName = 'Footwear'
++)
++SELECT brandName AS id
++FROM ap
++WHERE brandName IN (SELECT brandName FROM fwb)
++GROUP BY brandName
++HAVING COUNT(*) >= 2 AND COUNT(DISTINCT atype) = 1
++"""
++accuracy_metric = "f1-score"
+diff --git a/files/additional/queries/q10.toml b/files/additional/queries/q10.toml
+new file mode 100644
+index 0000000..d98bf74
+--- /dev/null
++++ b/files/additional/queries/q10.toml
+@@ -0,0 +1,18 @@
++[metadata]
++query_id = 10
++data = "mmqa images, scale factor 400, grouped into albums (data/mmqa_albums_sf400.csv)"
++modalities = ["image", "tabular"]
++
++[definition]
++natural_language = """
++Each row is an image that belongs to a given album (a collection of images), shown with
++the image itself. By looking only at the image pixels, decide whether each image shows
++one or more people. Among albums that contain at least 10 images, return those that
++contain BOTH at least one image with people AND at least one image with no people.
++Output one row per qualifying album with a single column: id (the album id).
++"""
++# Ground truth: albums satisfying the rule over the frozen per-image labels
++# (subject / has_people) in data/mmqa_albums_sf400.csv; regenerate with make_gt.py.
++ground_truth_rule = "people_mix,size>=10"
++ground_truth = [1003, 1004, 1005, 1006, 1007, 1008]
++accuracy_metric = "f1-score"
+diff --git a/files/additional/queries/q2.toml b/files/additional/queries/q2.toml
+new file mode 100644
+index 0000000..8e583a5
+--- /dev/null
++++ b/files/additional/queries/q2.toml
+@@ -0,0 +1,34 @@
++[metadata]
++query_id = 2
++data = "ecomm, scale factor 1000"
++modalities = ["image", "tabular"]
++
++[definition]
++natural_language = """
++Decide the intended wearer gender of each apparel item from its product image only
++-- not the product name or any text field. Gender means who the garment is designed
++for: men's, women's, or unisex.
++
++Among brands that sell at least two apparel products and that also sell at least one
++footwear product, find the brands whose apparel products all target the same gender
++-- every apparel item they sell shares one intended gender. Output one row per
++qualifying brand with a single column ``id`` holding the brand name.
++"""
++# Ground truth: SQL over files/ecomm/data/sf_1000 (keys on the hidden catalog label).
++ground_truth = """
++WITH ap AS (
++  SELECT brandName, gender AS k
++  FROM read_parquet('styles_details.parquet')
++  WHERE masterCategory.typeName = 'Apparel'
++),
++fwb AS (
++  SELECT DISTINCT brandName FROM read_parquet('styles_details.parquet')
++  WHERE masterCategory.typeName = 'Footwear'
++)
++SELECT brandName AS id
++FROM ap
++WHERE brandName IN (SELECT brandName FROM fwb)
++GROUP BY brandName
++HAVING COUNT(*) >= 2 AND COUNT(DISTINCT k) = 1
++"""
++accuracy_metric = "f1-score"
+diff --git a/files/additional/queries/q3.toml b/files/additional/queries/q3.toml
+new file mode 100644
+index 0000000..3c94c68
+--- /dev/null
++++ b/files/additional/queries/q3.toml
+@@ -0,0 +1,35 @@
++[metadata]
++query_id = 3
++data = "ecomm, scale factor 1000"
++modalities = ["image", "tabular"]
++
++[definition]
++natural_language = """
++Decide what broad kind of garment each apparel item is from its product image only --
++not the product name or any text field. Broad kind means the general category of
++garment: top-wear (e.g. shirts, t-shirts, jackets, sweaters), bottom-wear (e.g. jeans,
++trousers, shorts, skirts), innerwear, or similar.
++
++Among brands that sell at least two apparel products and that also sell at least one
++accessory product, find the brands whose apparel products are all the same broad kind
++of garment -- every apparel item they sell falls in the same broad kind. Output one row
++per qualifying brand with a single column ``id`` holding the brand name.
++"""
++# Ground truth: SQL over files/ecomm/data/sf_1000 (keys on the hidden catalog label).
++ground_truth = """
++WITH ap AS (
++  SELECT brandName, subCategory.typeName AS k
++  FROM read_parquet('styles_details.parquet')
++  WHERE masterCategory.typeName = 'Apparel'
++),
++acb AS (
++  SELECT DISTINCT brandName FROM read_parquet('styles_details.parquet')
++  WHERE masterCategory.typeName = 'Accessories'
++)
++SELECT brandName AS id
++FROM ap
++WHERE brandName IN (SELECT brandName FROM acb)
++GROUP BY brandName
++HAVING COUNT(*) >= 2 AND COUNT(DISTINCT k) = 1
++"""
++accuracy_metric = "f1-score"
+diff --git a/files/additional/queries/q4.toml b/files/additional/queries/q4.toml
+new file mode 100644
+index 0000000..f6d1ce4
+--- /dev/null
++++ b/files/additional/queries/q4.toml
+@@ -0,0 +1,34 @@
++[metadata]
++query_id = 4
++data = "ecomm, scale factor 1000"
++modalities = ["image", "tabular"]
++
++[definition]
++natural_language = """
++Decide what kind of accessory each accessory product is from its product image only
++-- not the product name or any text field. Kind means the accessory type: a watch,
++a bag, a belt, a wallet, eyewear, jewellery, or similar.
++
++Among brands that sell at least two accessory products and that also sell at least
++one apparel product, find the brands whose accessory products are all the same kind
++-- every accessory item they sell is the same type. Output one row per qualifying
++brand with a single column ``id`` holding the brand name.
++"""
++# Ground truth: SQL over files/ecomm/data/sf_1000 (keys on the hidden catalog label).
++ground_truth = """
++WITH ac AS (
++  SELECT brandName, subCategory.typeName AS k
++  FROM read_parquet('styles_details.parquet')
++  WHERE masterCategory.typeName = 'Accessories'
++),
++apb AS (
++  SELECT DISTINCT brandName FROM read_parquet('styles_details.parquet')
++  WHERE masterCategory.typeName = 'Apparel'
++)
++SELECT brandName AS id
++FROM ac
++WHERE brandName IN (SELECT brandName FROM apb)
++GROUP BY brandName
++HAVING COUNT(*) >= 2 AND COUNT(DISTINCT k) = 1
++"""
++accuracy_metric = "f1-score"
+diff --git a/files/additional/queries/q5.toml b/files/additional/queries/q5.toml
+new file mode 100644
+index 0000000..ec37e09
+--- /dev/null
++++ b/files/additional/queries/q5.toml
+@@ -0,0 +1,18 @@
++[metadata]
++query_id = 5
++data = "mmqa images, scale factor 400, grouped into albums (data/mmqa_albums_sf400.csv)"
++modalities = ["image", "tabular"]
++
++[definition]
++natural_language = """
++Each row is an image that belongs to a given album (a collection of images), shown with
++the image itself. By looking only at the image pixels, decide each image's main subject
++(a short noun describing what the image mainly shows). Return the albums that contain at
++least two images showing different subjects from each other. Output one row per
++qualifying album with a single column: id (the album id).
++"""
++# Ground truth: albums satisfying the rule over the frozen per-image labels
++# (subject / has_people) in data/mmqa_albums_sf400.csv; regenerate with make_gt.py.
++ground_truth_rule = "subjects>=2,size>=2"
++ground_truth = [1003, 1004, 1005, 1006, 1007, 1008, 1009]
++accuracy_metric = "f1-score"
+diff --git a/files/additional/queries/q6.toml b/files/additional/queries/q6.toml
+new file mode 100644
+index 0000000..ea79889
+--- /dev/null
++++ b/files/additional/queries/q6.toml
+@@ -0,0 +1,18 @@
++[metadata]
++query_id = 6
++data = "mmqa images, scale factor 400, grouped into albums (data/mmqa_albums_sf400.csv)"
++modalities = ["image", "tabular"]
++
++[definition]
++natural_language = """
++Each row is an image that belongs to a given album (a collection of images), shown with
++the image itself. By looking only at the image pixels, decide each image's main subject
++(a short noun). Among albums that contain at least 3 images, return those that include
++at least two images showing different subjects from each other. Output one row per
++qualifying album with a single column: id (the album id).
++"""
++# Ground truth: albums satisfying the rule over the frozen per-image labels
++# (subject / has_people) in data/mmqa_albums_sf400.csv; regenerate with make_gt.py.
++ground_truth_rule = "subjects>=2,size>=3"
++ground_truth = [1003, 1004, 1005, 1006, 1007, 1008, 1009]
++accuracy_metric = "f1-score"
+diff --git a/files/additional/queries/q7.toml b/files/additional/queries/q7.toml
+new file mode 100644
+index 0000000..59927e2
+--- /dev/null
++++ b/files/additional/queries/q7.toml
+@@ -0,0 +1,18 @@
++[metadata]
++query_id = 7
++data = "mmqa images, scale factor 400, grouped into albums (data/mmqa_albums_sf400.csv)"
++modalities = ["image", "tabular"]
++
++[definition]
++natural_language = """
++Each row is an image that belongs to a given album (a collection of images), shown with
++the image itself. By looking only at the image pixels, decide each image's main subject
++(a short noun). Among albums that contain at least 4 images, return those that include
++at least two images showing different subjects from each other. Output one row per
++qualifying album with a single column: id (the album id).
++"""
++# Ground truth: albums satisfying the rule over the frozen per-image labels
++# (subject / has_people) in data/mmqa_albums_sf400.csv; regenerate with make_gt.py.
++ground_truth_rule = "subjects>=2,size>=4"
++ground_truth = [1003, 1004, 1005, 1006, 1007, 1008, 1009]
++accuracy_metric = "f1-score"
+diff --git a/files/additional/queries/q8.toml b/files/additional/queries/q8.toml
+new file mode 100644
+index 0000000..77437e2
+--- /dev/null
++++ b/files/additional/queries/q8.toml
+@@ -0,0 +1,18 @@
++[metadata]
++query_id = 8
++data = "mmqa images, scale factor 400, grouped into albums (data/mmqa_albums_sf400.csv)"
++modalities = ["image", "tabular"]
++
++[definition]
++natural_language = """
++Each row is an image that belongs to a given album (a collection of images), shown with
++the image itself. By looking only at the image pixels, decide each image's main subject
++(a short noun). Among albums that contain at least 5 images, return those that include
++at least two images showing different subjects from each other. Output one row per
++qualifying album with a single column: id (the album id).
++"""
++# Ground truth: albums satisfying the rule over the frozen per-image labels
++# (subject / has_people) in data/mmqa_albums_sf400.csv; regenerate with make_gt.py.
++ground_truth_rule = "subjects>=2,size>=5"
++ground_truth = [1003, 1004, 1005, 1006, 1007, 1008, 1009]
++accuracy_metric = "f1-score"
+diff --git a/files/additional/queries/q9.toml b/files/additional/queries/q9.toml
+new file mode 100644
+index 0000000..79cbfbe
+--- /dev/null
++++ b/files/additional/queries/q9.toml
+@@ -0,0 +1,18 @@
++[metadata]
++query_id = 9
++data = "mmqa images, scale factor 400, grouped into albums (data/mmqa_albums_sf400.csv)"
++modalities = ["image", "tabular"]
++
++[definition]
++natural_language = """
++Each row is an image that belongs to a given album (a collection of images), shown with
++the image itself. By looking only at the image pixels, decide whether each image shows
++one or more people. Among albums that contain at least 6 images, return those that
++contain BOTH at least one image with people AND at least one image with no people.
++Output one row per qualifying album with a single column: id (the album id).
++"""
++# Ground truth: albums satisfying the rule over the frozen per-image labels
++# (subject / has_people) in data/mmqa_albums_sf400.csv; regenerate with make_gt.py.
++ground_truth_rule = "people_mix,size>=6"
++ground_truth = [1003, 1004, 1005, 1006, 1007, 1008]
++accuracy_metric = "f1-score"
+diff --git a/files/ecomm/queries/q1.toml b/files/ecomm/queries/q1.toml
+index 5583d80..247e809 100644
+--- a/files/ecomm/queries/q1.toml
++++ b/files/ecomm/queries/q1.toml
+@@ -17,6 +17,7 @@ Note: parts of the predicate should be intantiated to prevent over-optimization.
+ natural_language = """
+ Based on the textual description and the title of the product,
+ find the product ids of products that are backpacks from Reebok.
++Return a single column: id.
+ """
+ # Equivalent to the natural language query
+ sql = """
+diff --git a/files/ecomm/queries/q10.toml b/files/ecomm/queries/q10.toml
+index 96e2365..832b7e5 100644
+--- a/files/ecomm/queries/q10.toml
++++ b/files/ecomm/queries/q10.toml
+@@ -16,10 +16,18 @@ Provide both text and image so that filters can be evaluated flexibly with diffe
+ [definition]
+ # For systems that accept free-text queries
+ natural_language = """
+-Based on product images, find matching outfits consisting of shoes,
+-bottomwear, and topwear in Black, Blue, Red, or White,
+-where all three items are from the same brand, same color,
+-and each is priced at $10 or less.
++Find matching outfits consisting of shoes (footwear category), bottomwear,
++and topwear in Black, Blue, Red, or White, where all three items are from
++the same brand and same base color, and each is priced at $10 or less
++(note: prices are stored in cents, so $10 = 1000).
++Determine each item's category (shoes, bottomwear, topwear) solely from its
++product image. Determine brand and color from both the image and description.
++Return a single column: id, formatted as '<shoes_id>-<bottomwear_id>-<topwear_id>'.
++
++Example output (showing the expected schema and format, not actual values):
++id
++5001-6001-7001
++5002-6010-7020
+ """
+ # Equivalent to the natural language query
+ sql = ""
+diff --git a/files/ecomm/queries/q11.toml b/files/ecomm/queries/q11.toml
+index 410cb32..9809616 100644
+--- a/files/ecomm/queries/q11.toml
++++ b/files/ecomm/queries/q11.toml
+@@ -17,9 +17,12 @@ Provide both text and image so that filters can be evaluated flexibly with diffe
+ # For systems that accept free-text queries
+ natural_language = """
+ Based on product images and descriptions, find matching all-black outfits
+-consisting of shoes, bottomwear (excluding swimwear), topwear (excluding swimwear),
+-and an accessory (watch, jewellery, or bag priced at $5 or less),
+-where all four items are from the same brand.
++consisting of black shoes (footwear category), black bottomwear (excluding
++swimwear), black topwear (excluding swimwear), and an accessory (watch,
++jewellery, or bag priced at $5 or less, i.e. price <= 500 in cents;
++accessories are not required to be black), where all four items are from
++the same brand.
++Return a single column: id, formatted as '<shoes_id>-<bottomwear_id>-<topwear_id>-<accessory_id>'.
+ """
+ # Equivalent to the natural language query
+ sql = ""
+diff --git a/files/ecomm/queries/q12.toml b/files/ecomm/queries/q12.toml
+index a44a375..2085379 100644
+--- a/files/ecomm/queries/q12.toml
++++ b/files/ecomm/queries/q12.toml
+@@ -13,7 +13,10 @@ for all items (images and description and title), create the following json:
+ natural_language = """
+ For each Adidas or Puma product, use the product image and description
+ to generate a JSON object with the product id, brand name (lowercase),
+-and master category classified as 'accessories', 'apparel', or 'footwear'.
++and master category classified as 'accessories', 'apparel', or 'footwear'
++(all lowercase).
++Return a single column: id, where each value is a JSON string in the format
++{"id": <product_id>, "brand": "<brand_lowercase>", "category": "<category_lowercase>"}.
+ """
+ # Equivalent to the natural language query
+ sql = ""
+diff --git a/files/ecomm/queries/q13.toml b/files/ecomm/queries/q13.toml
+index 25e3c85..d9a2620 100644
+--- a/files/ecomm/queries/q13.toml
++++ b/files/ecomm/queries/q13.toml
+@@ -21,10 +21,10 @@ Optimization ideas:
+ [definition]
+ # For systems that accept free-text queries
+ natural_language = """
+-Based on product images and descriptions, find men's running shirts
+-with round neck and short sleeves, in blue or black (not bright colors
+-like white, and definitely not green), with a striped design,
+-suitable for outdoor running in warm weather.
++Based on product images and descriptions, find men's sports t-shirts
++with round neck and short sleeves, in blue or black, with a striped
++pattern, suitable for non-winter seasons (i.e. warm weather).
++Return a single column: id.
+ """
+ # Equivalent to the natural language query
+ sql = """
+diff --git a/files/ecomm/queries/q14.toml b/files/ecomm/queries/q14.toml
+index 6e0ef8a..a38b2cb 100644
+--- a/files/ecomm/queries/q14.toml
++++ b/files/ecomm/queries/q14.toml
+@@ -1,7 +1,7 @@
+ [metadata]
+ query_id = 14
+ modalities = ["image", "text", "tabular"]
+-required_operators = ["SEMANTIC_JOIN", "SEMANTIC_FILTER", "SEMANTIC_RANKING"]
++required_operators = ["SEMANTIC_JOIN", "SEMANTIC_FILTER"]
+ description = """
+ Image reconciliation: Find the original image for a product based on the product description.
+ 
+@@ -19,10 +19,12 @@ This might be a good example for join ordering and cardinality estimation.
+ [definition]
+ # For systems that accept free-text queries
+ natural_language = """
+-For each fashion product that costs less than 130,
+-find the single image that best matches the product's textual description
+-(including the product name and full description),
+-but only if that image also depicts white socks.
++For all products priced under 130
++(note: prices are stored in the original unit, so price < 130 directly),
++determine solely from the product image whether it depicts white socks
++(do not use product names or text descriptions for this determination).
++For each product whose image depicts white socks, return its image id.
++Return a single column: id (the image id).
+ """
+ 
+ # Equivalent to the natural language query
+diff --git a/files/ecomm/queries/q2.toml b/files/ecomm/queries/q2.toml
+index 9d7dfe9..af25285 100644
+--- a/files/ecomm/queries/q2.toml
++++ b/files/ecomm/queries/q2.toml
+@@ -13,9 +13,10 @@ Used to test isolated performance of semantic filters on image data.
+ [definition]
+ # For systems that accept free-text queries
+ natural_language = """
+-Based on the image representation of the product,
+-find the product ids of products where the image shows
+-a pair of sports shoes that are predominantly yellow and silver.
++Determine solely from each product's image whether it shows
++a pair of sports shoes that are predominantly yellow and silver
++(do not use product names or text descriptions for this determination).
++Return a single column: id.
+ """
+ # Equivalent to the natural language query
+ sql = """
+diff --git a/files/ecomm/queries/q4.toml b/files/ecomm/queries/q4.toml
+index b2c682a..9ddb654 100644
+--- a/files/ecomm/queries/q4.toml
++++ b/files/ecomm/queries/q4.toml
+@@ -17,7 +17,7 @@ the list of pre-filtered colors because this would be a semantic classification.
+ [definition]
+ # For systems that accept free-text queries
+ natural_language = """
+-For each product, extract the primary color of the depicted product.
++Based on the product image, extract the primary color of the depicted product.
+ Return the product id and the primary color in a column titled 'category'.
+ """
+ # Equivalent to the natural language query
+diff --git a/files/ecomm/queries/q7.toml b/files/ecomm/queries/q7.toml
+index 3aaaa6d..adf6045 100644
+--- a/files/ecomm/queries/q7.toml
++++ b/files/ecomm/queries/q7.toml
+@@ -12,8 +12,17 @@ maybe "same type of clothing from the same brand?
+ [definition]
+ # For systems that accept free-text queries
+ natural_language = """
+-Find all pairs of products priced at $5 or less where both products
+-are of the same category and from the same brand based on their descriptions.
++Find all pairs of products priced at $5 or less (note: prices are stored
++in cents, so $5 = 500) where both products are of the same article type
++and from the same brand based on their descriptions.
++Include self-pairs (a product paired with itself).
++Return a single column: id, formatted as '<id1>-<id2>'.
++
++Example output (showing the expected schema and format, not actual values):
++id
++1001-1002
++1001-1001
++2050-2051
+ """
+ # Equivalent to the natural language query
+ sql = ""
+diff --git a/files/ecomm/queries/q8.toml b/files/ecomm/queries/q8.toml
+index d13f5c9..d9323b2 100644
+--- a/files/ecomm/queries/q8.toml
++++ b/files/ecomm/queries/q8.toml
+@@ -13,10 +13,11 @@ To solve this, we might also only use recall instead of f1-score for accuracy.
+ [definition]
+ # For systems that accept free-text queries
+ natural_language = """
+-Perform a self-join of the dataset.
+-For each product with a product description having at least 3000 characters,
+-find the matching product images based on the title and the description
+-of the product.
++For each product whose textual description has at least 3000 characters,
++find the product image that best matches its title and description.
++Each qualifying product should be matched to its own image.
++Return a single column: id, formatted as '<product_id>-<image_id>'
++(in this case both are the same product id).
+ """
+ # Equivalent to the natural language query
+ sql = ""
+diff --git a/files/ecomm/queries/q9.toml b/files/ecomm/queries/q9.toml
+index 4b0d45f..f4c909c 100644
+--- a/files/ecomm/queries/q9.toml
++++ b/files/ecomm/queries/q9.toml
+@@ -15,9 +15,19 @@ the result contains around 90000 items.
+ [definition]
+ # For systems that accept free-text queries
+ natural_language = """
+-Based on product images, find pairs of distinct products under $8
+-in a single base color (Black, Blue, Red, White, Orange, or Green)
+-that depict objects of the same category and the same dominant surface color.
++Find pairs of distinct products under $8
++(note: prices are stored in cents, so $8 = 800) that have exactly one
++base color (no secondary colors) from Black, Blue, Red, White, Orange,
++or Green, and that share the same base color (use the baseColour column
++for this). Determine whether two products share the same article type
++solely by comparing their product images (do not use product names or
++text descriptions for this determination).
++Return a single column: id, formatted as '<id1>-<id2>'.
++
++Example output (showing the expected schema and format, not actual values):
++id
++3001-3002
++4010-4020
+ """
+ # Equivalent to the natural language query
+ sql = ""
+@@ -29,8 +39,10 @@ WITH product_selection AS (
+   FROM read_parquet('styles_details.parquet')
+   WHERE true
+     AND baseColour IN ('Black', 'Blue', 'Red', 'White', 'Orange', 'Green')
+-    AND colour1 = ''
+-    AND colour2 = ''
++    -- "no secondary colors" is encoded two ways in this dataset: '' and 'NA'.
++    -- Both are semantically equivalent; include both so the GT reflects intent.
++    AND colour1 IN ('', 'NA')
++    AND colour2 IN ('', 'NA')
+     AND price < 800
+ )
+ SELECT p1.id || '-' || p2.id AS id
+diff --git a/files/mmqa/query/natural_language/q1.json b/files/mmqa/query/natural_language/q1.json
+index be30bcf..4ae274a 100644
+--- a/files/mmqa/query/natural_language/q1.json
++++ b/files/mmqa/query/natural_language/q1.json
+@@ -1,5 +1,6 @@
+ {
+-    "nl_question": "Who is the director of the movie that has Ben Piazza in the role of Bob Whitewood?",
++    "nl_question": "Based on the movie text descriptions, who is the director of the movie that has Ben Piazza in the role of Bob Whitewood? The output must have exactly the column: director.",
+     "modalities": ["table", "text"],
+-    "ground_truth": ["Michael Ritchie"]
++    "ground_truth": ["Michael Ritchie"],
++    "expected_columns": ["director"]
+ }
+diff --git a/files/mmqa/query/natural_language/q2a.json b/files/mmqa/query/natural_language/q2a.json
+index 0bbd180..fb69b7d 100644
+--- a/files/mmqa/query/natural_language/q2a.json
++++ b/files/mmqa/query/natural_language/q2a.json
+@@ -1,5 +1,5 @@
+ {
+-    "nl_question": "Identify the images containing logos, if available, for each racetrack in which A.P. Warrior was a contender.",
++    "nl_question": "For each row in ap_warrior.Track, list the row ID and a logo image where the text in the logo approximately matches that row's track name. The output must have exactly these columns: ID (racetrack identifier), image_id (image filename).",
+     "modalities": ["table", "image"],
+     "ground_truth": [
+         [0, "117d500aaa630023c4038b8268b309c0.png"],
+@@ -7,5 +7,6 @@
+         [6, "117d500aaa630023c4038b8268b309c0.png"],
+         [9, "117d500aaa630023c4038b8268b309c0.png"],
+         [10, "117d500aaa630023c4038b8268b309c0.png"]
+-    ]
++    ],
++    "expected_columns": ["ID", "image_id"]
+ }
+diff --git a/files/mmqa/query/natural_language/q2b.json b/files/mmqa/query/natural_language/q2b.json
+index e4c2537..94f3c60 100644
+--- a/files/mmqa/query/natural_language/q2b.json
++++ b/files/mmqa/query/natural_language/q2b.json
+@@ -1,5 +1,5 @@
+ {
+-    "nl_question": "Identify the images containing logos, if available, for each racetrack in which A.P. Warrior was a contender. What is the color of each logo?",
++    "nl_question": "For each row in ap_warrior.Track, find a logo image where the text in the logo approximately matches that row's track name. What is the color of each logo? The output must have exactly these columns: ID (racetrack identifier), image_id (image filename), color.",
+     "modalities": ["table", "image"],
+     "ground_truth": [
+         [0, "117d500aaa630023c4038b8268b309c0.png", "blue"],
+@@ -7,5 +7,6 @@
+         [6, "117d500aaa630023c4038b8268b309c0.png", "blue"],
+         [9, "117d500aaa630023c4038b8268b309c0.png", "blue"],
+         [10, "117d500aaa630023c4038b8268b309c0.png", "blue"]
+-    ]
++    ],
++    "expected_columns": ["ID", "image_id", "color"]
+ }
+diff --git a/files/mmqa/query/natural_language/q3a.json b/files/mmqa/query/natural_language/q3a.json
+index 317069b..8dea759 100644
+--- a/files/mmqa/query/natural_language/q3a.json
++++ b/files/mmqa/query/natural_language/q3a.json
+@@ -1,5 +1,5 @@
+ {
+-    "nl_question": "Which movies are comedies?",
++    "nl_question": "Based on the movie text descriptions, which movies that Lizzy Caplan appeared in are comedies? The output must have exactly the column: title.",
+     "modalities": ["table"],
+     "ground_truth": [
+         "Orange County",
+@@ -15,5 +15,6 @@
+         "The Night Before",
+         "The Disaster Artist",
+         "The People We Hate at the Wedding"
+-    ]
++    ],
++    "expected_columns": ["title"]
+ }
+diff --git a/files/mmqa/query/natural_language/q3b.json b/files/mmqa/query/natural_language/q3b.json
+index d1cfdf4..a79afa6 100644
+--- a/files/mmqa/query/natural_language/q3b.json
++++ b/files/mmqa/query/natural_language/q3b.json
+@@ -1,9 +1,10 @@
+ {
+-    "nl_question": "Which movies are sci-fi?",
++    "nl_question": "Based on the movie text descriptions, which movies that Lizzy Caplan appeared in are sci-fi? The output must have exactly the column: title.",
+     "modalities": ["table"],
+     "ground_truth": [
+         "Hot Tub Time Machine",
+         "Item 47",
+         "Extinction"
+-    ]
++    ],
++    "expected_columns": ["title"]
+ }
+diff --git a/files/mmqa/query/natural_language/q3c.json b/files/mmqa/query/natural_language/q3c.json
+index 5c11bce..a8ad7f8 100644
+--- a/files/mmqa/query/natural_language/q3c.json
++++ b/files/mmqa/query/natural_language/q3c.json
+@@ -1,10 +1,11 @@
+ {
+-    "nl_question": "Which movies are romances?",
++    "nl_question": "Based on the movie text descriptions, which movies that Lizzy Caplan appeared in are romances? The output must have exactly the column: title.",
+     "modalities": ["table"],
+     "ground_truth": [
+         "My Best Friend's Girl",
+         "Save the Date",
+         "Allied",
+         "The People We Hate at the Wedding"
+-    ]
++    ],
++    "expected_columns": ["title"]
+ }
+diff --git a/files/mmqa/query/natural_language/q3d.json b/files/mmqa/query/natural_language/q3d.json
+index cbe111f..19700e9 100644
+--- a/files/mmqa/query/natural_language/q3d.json
++++ b/files/mmqa/query/natural_language/q3d.json
+@@ -1,8 +1,9 @@
+ {
+-    "nl_question": "Which movies are horror?",
++    "nl_question": "Based on the movie text descriptions, which movies that Lizzy Caplan appeared in are horror? The output must have exactly the column: title.",
+     "modalities": ["table"],
+     "ground_truth": [
+         "Cloverfield",
+         "Cobweb"
+-    ]
++    ],
++    "expected_columns": ["title"]
+ }
+diff --git a/files/mmqa/query/natural_language/q3e.json b/files/mmqa/query/natural_language/q3e.json
+index 95fab79..96b9ade 100644
+--- a/files/mmqa/query/natural_language/q3e.json
++++ b/files/mmqa/query/natural_language/q3e.json
+@@ -1,7 +1,8 @@
+ {
+-    "nl_question": "Which movies are heist movies?",
++    "nl_question": "Based on the movie text descriptions, which movies that Lizzy Caplan appeared in are heist movies? The output must have exactly the column: title.",
+     "modalities": ["table"],
+     "ground_truth": [
+         "Now You See Me 2"
+-    ]
++    ],
++    "expected_columns": ["title"]
+ }
+diff --git a/files/mmqa/query/natural_language/q3f.json b/files/mmqa/query/natural_language/q3f.json
+index fe80762..9dd9e9d 100644
+--- a/files/mmqa/query/natural_language/q3f.json
++++ b/files/mmqa/query/natural_language/q3f.json
+@@ -1,9 +1,10 @@
+ {
+-    "nl_question": "Which movies are romantic comedies?",
++    "nl_question": "Based on the movie text descriptions, which movies that Lizzy Caplan appeared in are romantic comedies? The output must have exactly the column: title.",
+     "modalities": ["table"],
+     "ground_truth": [
+         "My Best Friend's Girl",
+         "Save the Date",
+         "The People We Hate at the Wedding"
+-    ]
+-}
+\ No newline at end of file
++    ],
++    "expected_columns": ["title"]
++}
+diff --git a/files/mmqa/query/natural_language/q3g.json b/files/mmqa/query/natural_language/q3g.json
+index 1b35260..d5b4d1a 100644
+--- a/files/mmqa/query/natural_language/q3g.json
++++ b/files/mmqa/query/natural_language/q3g.json
+@@ -1,7 +1,8 @@
+ {
+-    "nl_question": "Which movies are biographical comedies?",
++    "nl_question": "Based on the movie text descriptions, which movies that Lizzy Caplan appeared in are biographical comedies? The output must have exactly the column: title.",
+     "modalities": ["table"],
+     "ground_truth": [
+         "The Disaster Artist"
+-    ]
+-}
+\ No newline at end of file
++    ],
++    "expected_columns": ["title"]
++}
+diff --git a/files/mmqa/query/natural_language/q4.json b/files/mmqa/query/natural_language/q4.json
+index ea5842b..83de06a 100644
+--- a/files/mmqa/query/natural_language/q4.json
++++ b/files/mmqa/query/natural_language/q4.json
+@@ -1,5 +1,5 @@
+ {
+-    "nl_question": "Categorize the movies in the table by their genre. If a movie belongs to multiple genres, list it under each applicable genre.",
++    "nl_question": "Based on the movie text descriptions, categorize the movies that Lizzy Caplan appeared in by their genre. If a movie belongs to multiple genres, list it under each applicable genre. Group the results by genre, with each genre's movies listed as a comma-separated string. The output must have exactly these columns: genre, movies_in_genre.",
+     "modalities": ["table"],
+     "ground_truth": {
+         "comedy": [
+@@ -67,5 +67,6 @@
+         "thriller": [
+             "Allied"
+         ]
+-    }
+-}
+\ No newline at end of file
++    },
++    "expected_columns": ["genre", "movies_in_genre"]
++}
+diff --git a/files/mmqa/query/natural_language/q5.json b/files/mmqa/query/natural_language/q5.json
+index 8bcf9f0..8a30148 100644
+--- a/files/mmqa/query/natural_language/q5.json
++++ b/files/mmqa/query/natural_language/q5.json
+@@ -1,5 +1,6 @@
+ {
+-    "nl_question": "Who has played a role in all the following movies: 'Love Is the Drug', 'Crashing', 'Cloverfield', 'My Best Friend's Girl', 'Hot Tub Time Machine', 'The Last Rites of Ransom Pride', 'Save the Date', 'Bachelorette', '3, 2, 1... Frankie Go Boom', 'Queens of Country', 'Item 47', 'The Night Before', 'Now You See Me 2', 'Allied', 'Extinction', and 'Cobweb'?",
++    "nl_question": "Using the lizzy_caplan_text_data table, who has played a role in all the following movies: 'Love Is the Drug', 'Crashing', 'Cloverfield', 'My Best Friend's Girl', 'Hot Tub Time Machine', 'The Last Rites of Ransom Pride', 'Save the Date', 'Bachelorette', '3, 2, 1... Frankie Go Boom', 'Queens of Country', 'Item 47', 'The Night Before', 'Now You See Me 2', 'Allied', 'Extinction', and 'Cobweb'? The output must have exactly the column: actor.",
+     "modalities": ["text"],
+-    "ground_truth": ["Lizzy Caplan"]
+-}
+\ No newline at end of file
++    "ground_truth": ["Lizzy Caplan"],
++    "expected_columns": ["actor"]
++}
+diff --git a/files/mmqa/query/natural_language/q6a.json b/files/mmqa/query/natural_language/q6a.json
+index 2aa8f57..f164677 100644
+--- a/files/mmqa/query/natural_language/q6a.json
++++ b/files/mmqa/query/natural_language/q6a.json
+@@ -1,7 +1,8 @@
+ {
+-    "nl_question": "Which airlines have destinations in Frankfurt?",
++    "nl_question": "Based on the listed destinations in the table, which airlines in the tampa_international_airport table have destinations in Frankfurt? The output must have exactly the column: Airlines.",
+     "modalities": ["table"],
+     "ground_truth": [
+         "Discover Airlines"
+-    ]
++    ],
++    "expected_columns": ["Airlines"]
+ }
+diff --git a/files/mmqa/query/natural_language/q6b.json b/files/mmqa/query/natural_language/q6b.json
+index 20db98c..9099d32 100644
+--- a/files/mmqa/query/natural_language/q6b.json
++++ b/files/mmqa/query/natural_language/q6b.json
+@@ -1,7 +1,8 @@
+ {
+-    "nl_question": "Which airlines have destinations in Germany?",
++    "nl_question": "Based on the listed destinations in the table, which airlines in the tampa_international_airport table have destinations in Germany? The output must have exactly the column: Airlines.",
+     "modalities": ["table"],
+     "ground_truth": [
+         "Discover Airlines"
+-    ]
++    ],
++    "expected_columns": ["Airlines"]
+ }
+diff --git a/files/mmqa/query/natural_language/q6c.json b/files/mmqa/query/natural_language/q6c.json
+index ed4bc03..268e71e 100644
+--- a/files/mmqa/query/natural_language/q6c.json
++++ b/files/mmqa/query/natural_language/q6c.json
+@@ -1,5 +1,5 @@
+ {
+-    "nl_question": "Which airlines have destinations in Europe?",
++    "nl_question": "Based on the listed destinations in the table, which airlines in the tampa_international_airport table have destinations in Europe? The output must have exactly the column: Airlines.",
+     "modalities": ["table"],
+     "ground_truth": [
+         "British Airways",
+@@ -7,5 +7,6 @@
+         "Discover Airlines",
+         "Edelweiss Air",
+         "Virgin Atlantic"
+-    ]
++    ],
++    "expected_columns": ["Airlines"]
+ }
+diff --git a/files/mmqa/query/natural_language/q7.json b/files/mmqa/query/natural_language/q7.json
+index 97d6f23..9c76876 100644
+--- a/files/mmqa/query/natural_language/q7.json
++++ b/files/mmqa/query/natural_language/q7.json
+@@ -1,5 +1,5 @@
+ {
+-    "nl_question": "For each airline with destinations in Europe, find its logo if one exists.",
++    "nl_question": "Find airlines from the tampa_international_airport table that have a matching logo in the images table. Only return airlines where a logo was found. The output must have exactly these columns: Airlines, image_id.",
+     "modalities": ["table", "image"],
+     "ground_truth": [
+         ["British Airways", "cwncgabxti09zmf36t4phvaz1xzv10wu.png"],
+@@ -7,5 +7,6 @@
+         ["Discover Airlines", "nqr1pjql5qs3dp8rz2a4zzq7rn0xyp6k.png"],
+         ["Edelweiss Air", "6zpijbg5jv4jftpftpmla6xbizne28d9.png"],
+         ["Virgin Atlantic", "antbx4oxst0z5o6pe2g1thrjr0dz073j.png"]
+-    ]
++    ],
++    "expected_columns": ["Airlines", "image_id"]
+ }
+diff --git a/requirements.txt b/requirements.txt
+index 7ac5ca9..5af2d8f 100644
+--- a/requirements.txt
++++ b/requirements.txt
+@@ -16,7 +16,7 @@ safetensors>=0.3.0
+ tokenizers>=0.13.0
+ 
+ # System-Specific Packages (CRITICAL - EXACT VERSIONS)
+-lotus-ai==1.1.3
++# lotus-ai==1.1.3
+ palimpzest==0.8.2
+ thalamusdb==0.1.15
+ 
+diff --git a/src/evaluator/generic_evaluator.py b/src/evaluator/generic_evaluator.py
+index 14dc024..b3553ab 100644
+--- a/src/evaluator/generic_evaluator.py
++++ b/src/evaluator/generic_evaluator.py
+@@ -201,7 +201,8 @@ class GenericEvaluator(abc.ABC):
+             return query_fn
+         except AttributeError:
+             raise NotImplementedError(
+-                f"Query {query_id} not implemented for {self.system_name}."
++                f"Query {query_id} not implemented for "
++                f"{self.__class__.__name__}."
+             )
+ 
+     def _discover_evaluate_impl(self, query_id) -> callable:
+@@ -213,7 +214,8 @@ class GenericEvaluator(abc.ABC):
+             return query_fn
+         except AttributeError:
+             raise NotImplementedError(
+-                f"Query {query_id} not implemented for {self.system_name}."
++                f"Query {query_id} not implemented for "
++                f"{self.__class__.__name__}."
+             )
+ 
+     def _generic_retrieval_evaluation(
+@@ -509,6 +511,57 @@ class GenericEvaluator(abc.ABC):
+             spearman_correlation=spearman_corr, kendall_tau=kendall_corr
+         )
+ 
++    @staticmethod
++    def _normalize_id_value(val):
++        """Normalize an ID value for comparison. Strings are lowercased so
++        case-only differences (e.g. 'Adidas' vs 'ADIDAS') don't cause
++        mismatches. If it's a JSON string, parse and re-serialize with a
++        canonical format (then lowercase) so whitespace differences
++        (e.g. '{"id":1}' vs '{"id": 1}') don't cause mismatches either.
++
++        Scalar TYPES inside the JSON are also canonicalized (every leaf coerced
++        to a string, int-valued floats to their int form) so that a value
++        serialized as a string vs a number -- e.g. '{"id":"10579"}' vs
++        '{"id":10579}', which the GT and a model emit interchangeably -- compares
++        equal. Without this, a correct answer that quotes the id scores 0."""
++
++        def _canon(o):
++            if isinstance(o, dict):
++                return {k: _canon(v) for k, v in o.items()}
++            if isinstance(o, list):
++                return [_canon(v) for v in o]
++            if isinstance(o, bool):
++                return str(o).lower()
++            if isinstance(o, float) and o.is_integer():
++                return str(int(o))
++            if isinstance(o, (int, float)):
++                return str(o)
++            return o  # already a string
++
++        if isinstance(val, str):
++            try:
++                parsed = json.loads(val)
++                # Only canonicalize scalar types for real JSON structures
++                # (objects/arrays), where a string-vs-number leaf causes the
++                # mismatch. Leave plain scalars (e.g. a bare numeric id "123")
++                # to the original behavior so their normalized form is unchanged.
++                if isinstance(parsed, (dict, list)):
++                    parsed = _canon(parsed)
++                val = json.dumps(parsed, sort_keys=True, separators=(",", ":"))
++            except (json.JSONDecodeError, TypeError):
++                pass
++            return val.lower()
++        return val
++
++    @staticmethod
++    def _normalize_id_set(df: pd.DataFrame, id_column: str) -> set:
++        """Extract the id column from a DataFrame as a set of normalized values."""
++        if df is None or df.empty:
++            return set()
++        return set(
++            GenericEvaluator._normalize_id_value(v) for v in df[id_column]
++        )
++
+     def compute_precision(
+         ground_truth: pd.DataFrame,
+         query_result: pd.DataFrame,
+@@ -520,13 +573,11 @@ class GenericEvaluator(abc.ABC):
+         a row. The precision is computed based on the IDs in the result and the
+         ground truth.
+         """
+-        ground_truth_ids = (
+-            set(ground_truth[id_column]) if not ground_truth.empty else set()
++        ground_truth_ids = GenericEvaluator._normalize_id_set(
++            ground_truth, id_column
+         )
+-        result_ids = (
+-            set(query_result[id_column])
+-            if query_result is not None and not query_result.empty
+-            else set()
++        result_ids = GenericEvaluator._normalize_id_set(
++            query_result, id_column
+         )
+         if len(ground_truth_ids) == 0:
+             # If ground truth is empty, precision is 1.0 if result is also
+@@ -549,13 +600,11 @@ class GenericEvaluator(abc.ABC):
+         a row. The recall is computed based on the IDs in the result and the
+         ground truth.
+         """
+-        ground_truth_ids = (
+-            set(ground_truth[id_column]) if not ground_truth.empty else set()
++        ground_truth_ids = GenericEvaluator._normalize_id_set(
++            ground_truth, id_column
+         )
+-        result_ids = (
+-            set(query_result[id_column])
+-            if query_result is not None and not query_result.empty
+-            else set()
++        result_ids = GenericEvaluator._normalize_id_set(
++            query_result, id_column
+         )
+         if len(ground_truth_ids) == 0:
+             # If ground truth is empty, recall is 1.0 if result is also empty,
+@@ -618,9 +667,16 @@ class GenericEvaluator(abc.ABC):
+         if query_result is None:
+             return 0.0
+ 
+-        # Map IDs to group assignments for both ground truth and query result
+-        gt_groups = ground_truth.set_index("id")["category"]
+-        qr_groups = query_result.set_index("id")["category"]
++        # Map IDs to group assignments for both ground truth and query result.
++        # Drop duplicate ids (keep first) so each id maps to a single scalar
++        # label; otherwise .set_index gives a Series per id and the downstream
++        # ARI call receives an inhomogeneous (nested) array and raises.
++        gt_groups = (
++            ground_truth.drop_duplicates("id").set_index("id")["category"]
++        )
++        qr_groups = (
++            query_result.drop_duplicates("id").set_index("id")["category"]
++        )
+ 
+         common_ids = set(gt_groups.index) & set(qr_groups.index)
+         if not common_ids:
+@@ -666,6 +722,17 @@ class GenericEvaluator(abc.ABC):
+             recall = GenericEvaluator.compute_recall(
+                 ground_truth, query_result, id_column=id_column
+             )
++            # "precision" metric encodes "any-of GT" semantics: the GT is a set
++            # of equally acceptable answers and returning any member is a full
++            # hit. Recompute recall / f1 under that semantic so they don't
++            # penalise a single-row system answer when |GT| > 1.
++            if accuracy_metric_type == "precision":
++                recall = 1.0 if precision > 0 else 0.0
++                f1_score = (
++                    2 * precision * recall / (precision + recall)
++                    if (precision + recall)
++                    else 0.0
++                )
+ 
+         if accuracy_metric_type == "f1-score":
+             return SingleAccuracyScoreWithRetrievalDetails(
+diff --git a/src/run.py b/src/run.py
+index 9f74e27..fae69a5 100755
+--- a/src/run.py
++++ b/src/run.py
+@@ -30,6 +30,7 @@ def get_runner_class(system: str, use_case: str):
+         "thalamusdb": "ThalamusDBRunner",
+         "flockmtl": "FlockMTLRunner",
+         "caesura": "CaesuraRunner",
++        "kathdb": "KathDBRunner",
+     }
+ 
+     if system not in runner_classes:
+@@ -70,6 +71,7 @@ def get_evaluator(use_case: str):
+         "ecomm": "EcommEvaluator",
+         "mmqa": "MMQAEvaluator",
+         "cars": "CarsEvaluator",
++        "additional": "AdditionalEvaluator",
+         # Add more use cases here as needed
+     }
+ 
+@@ -117,9 +119,12 @@ def parse_query_ids(query_args: List[str]) -> List[int]:
+             except ValueError:
+                 print(f"Warning: Invalid query format '{arg}', skipping")
+         else:
+-            query_ids.append(arg)
++            try:
++                query_ids.append(int(arg))
++            except ValueError:
++                query_ids.append(arg)
+ 
+-    return sorted(query_ids)
++    return sorted(query_ids, key=lambda q: (isinstance(q, str), str(q).zfill(4)))
+ 
+ 
+ def run_benchmark(
+diff --git a/src/runner/generic_kathdb_runner/generic_kathdb_runner.py b/src/runner/generic_kathdb_runner/generic_kathdb_runner.py
+new file mode 100644
+index 0000000..30d4c1f
+--- /dev/null
++++ b/src/runner/generic_kathdb_runner/generic_kathdb_runner.py
+@@ -0,0 +1,162 @@
++"""SemBench runner for KathDB (https://github.com/xertxiao/KathDB).
++
++Each query gets a fresh KathDB instance (its own catalog and worker); the function
++library under ``KATHDB_FN_DIR`` (default ``files/<use_case>/kathdb_fn_lib``) is
++shared across queries. Scenario subclasses provide the query text and the tables.
++
++Settings (environment):
++  KATHDB_AI_OP_MODEL          model the generated code calls per record (default openai/gpt-4o-mini)
++  KATHDB_LOGICAL_REWRITE      true/false, run the grouping optimizer (default true)
++  KATHDB_PHY_OPT              true/false, allow physical optimizations (default false)
++  KATHDB_PREBUILT_FUNCTIONS   true/false (default true)
++  KATHDB_GENERATED_FUNCTIONS  true/false, reuse + save functions across queries (default true)
++  KATHDB_NUM_EXECUTOR_WORKERS worker processes (default 1)
++  KATHDB_WORKER_ENV           existing conda env for the worker (default: KathDB provisions one)
++  KATHDB_FN_DIR               function library directory
++The planner model is ``--model`` (a ``provider/model`` id).
++"""
++
++from __future__ import annotations
++
++import os
++import shutil
++import tempfile
++import time
++from pathlib import Path
++from typing import Dict, List
++
++import pandas as pd
++from kathdb import KathDB
++from kathdb.config import KathDBConfig
++
++from ..generic_runner import GenericQueryMetric, GenericRunner
++
++_PLAN_STAGES = ("parser", "plan_gen", "grouping", "codegen")
++
++
++def _env_bool(key: str, default: bool) -> bool:
++    val = os.environ.get(key)
++    if val is None or not val.strip():
++        return default
++    return val.strip().lower() in ("1", "true", "yes", "on")
++
++
++class GenericKathDBRunner(GenericRunner):
++    """Base runner; subclasses implement ``_query_text`` and ``_register_tables``."""
++
++    QUERY_IDS: List[int] = []
++
++    def __init__(
++        self,
++        use_case: str,
++        scale_factor: int,
++        model_name: str = "anthropic/claude-opus-5",
++        concurrent_llm_worker: int = 1,
++        skip_setup: bool = False,
++        **kwargs,
++    ):
++        super().__init__(use_case, scale_factor, model_name, concurrent_llm_worker, skip_setup)
++        self._worker_env = os.environ.get("KATHDB_WORKER_ENV", "").strip() or None
++
++    def get_system_name(self) -> str:
++        return "kathdb"
++
++    # -- scenario hooks -------------------------------------------------------
++
++    def _query_text(self, query_id: int) -> str:
++        raise NotImplementedError
++
++    def _register_tables(self, db: KathDB, query_id: int) -> None:
++        raise NotImplementedError
++
++    def _discover_queries(self) -> List[int]:
++        return list(self.QUERY_IDS)
++
++    # -- KathDB ---------------------------------------------------------------
++
++    def _planner_model(self) -> str:
++        name = self.model_name
++        if "/" in name:
++            return name
++        if "claude" in name:
++            return f"anthropic/{name}"
++        if "gemini" in name:
++            return f"google/{name}"
++        return f"openai/{name}"
++
++    def _open_kathdb(self, tmp_dir: str) -> KathDB:
++        fn_dir = os.environ.get("KATHDB_FN_DIR", "").strip() or str(
++            self.files_path / "kathdb_fn_lib"
++        )
++        Path(fn_dir).mkdir(parents=True, exist_ok=True)
++        return KathDB(
++            Path(tmp_dir) / "catalog.duckdb",
++            planner_model=self._planner_model(),
++            ai_op_model=os.environ.get("KATHDB_AI_OP_MODEL", "").strip() or None,
++            human_in_the_loop=False,
++            logical_rewrite=_env_bool("KATHDB_LOGICAL_REWRITE", True),
++            phy_opt=_env_bool("KATHDB_PHY_OPT", False),
++            prebuilt_functions=_env_bool("KATHDB_PREBUILT_FUNCTIONS", True),
++            generated_functions=_env_bool("KATHDB_GENERATED_FUNCTIONS", True),
++            worker_env=self._worker_env,
++            num_executor_workers=int(os.environ.get("KATHDB_NUM_EXECUTOR_WORKERS", "1")),
++            config=KathDBConfig(generated_fn_dir=fn_dir),
++        )
++
++    def execute_query(self, query_id: int) -> GenericQueryMetric:
++        query_text = self._query_text(query_id)
++        tmp_dir = tempfile.mkdtemp(prefix="kathdb_sembench_")
++        try:
++            db = self._open_kathdb(tmp_dir)
++            try:
++                self._register_tables(db, query_id)
++                t0 = time.perf_counter()
++                result_ctx = db.query(query_text)
++                wall = time.perf_counter() - t0
++                result_df = db.last_result(result_ctx)
++                cost = db.last_cost()
++                # Reuse the worker environment KathDB provisioned for the next query.
++                self._worker_env = self._worker_env or db.worker_env_name
++            finally:
++                db.close()
++        finally:
++            shutil.rmtree(tmp_dir, ignore_errors=True)
++
++        if result_df is None:
++            result_df = self._get_empty_results_dataframe(query_id)
++        stages = cost.stages
++        total = cost.totals()
++        print(cost.summary())
++        return GenericQueryMetric(
++            query_id=query_id,
++            status="success",
++            execution_time=wall,
++            results=result_df,
++            token_usage=total.total_tokens,
++            money_cost=total.money_cost_usd,
++            plan_gen_time=sum(stages[s].wall_time_sec for s in _PLAN_STAGES),
++            plan_gen_money_cost=sum(stages[s].money_cost_usd for s in _PLAN_STAGES),
++            execution_only_time=stages["execution"].wall_time_sec,
++            execution_money_cost=stages["execution"].money_cost_usd,
++        )
++
++    def execute_queries(self, query_ids: List[int]) -> Dict[int, GenericQueryMetric]:
++        results = {}
++        for query_id in query_ids:
++            try:
++                results[query_id] = self.execute_query(query_id)
++            except Exception as e:  # noqa: BLE001 - one failed query must not stop the run
++                print(f"Error executing query {query_id}: {e}")
++                results[query_id] = GenericQueryMetric(
++                    query_id=query_id,
++                    status="failed",
++                    execution_time=0.0,
++                    results=self._get_empty_results_dataframe(query_id),
++                    error=str(e),
++                )
++        return results
++
++    # -- helpers for subclasses ---------------------------------------------------
++
++    def _empty_frame(self, columns: List[str]) -> pd.DataFrame:
++        return pd.DataFrame(columns=columns)
+diff --git a/src/runner/generic_runner.py b/src/runner/generic_runner.py
+index cbd6422..d4c9615 100644
+--- a/src/runner/generic_runner.py
++++ b/src/runner/generic_runner.py
+@@ -29,6 +29,11 @@ class GenericQueryMetric:
+     token_usage: int = None
+     money_cost: float = None
+     error: Optional[str] = None
++    # Optional plan-generation / execution split (systems that plan before executing).
++    plan_gen_time: float = None
++    plan_gen_money_cost: float = None
++    execution_only_time: float = None
++    execution_money_cost: float = None
+ 
+     def to_dict(self) -> Dict[str, Any]:
+         """
+@@ -338,5 +343,9 @@ class GenericRunner(ABC):
+             from scenario.cars.cars_scenario import CarsScenario
+ 
+             return CarsScenario(scale_factor=scale_factor)
++        elif use_case == "additional":
++            from scenario.additional.additional_scenario import AdditionalScenario
++
++            return AdditionalScenario(scale_factor=scale_factor)
+         else:
+             raise ValueError(f"Unknown use case: {use_case}.")
+diff --git a/src/scenario/additional/additional_scenario.py b/src/scenario/additional/additional_scenario.py
+new file mode 100644
+index 0000000..acdf005
+--- /dev/null
++++ b/src/scenario/additional/additional_scenario.py
+@@ -0,0 +1,80 @@
++"""Additional scenario: 10 image-judgment + aggregate queries.
++
++Q1-Q4 run on the E-Commerce data at scale factor 1000; Q5-Q10 on the MMQA images
++at scale factor 400 grouped into albums (``files/additional/data/mmqa_albums_sf400.csv``,
++which also carries the frozen per-image labels the ground truth is computed from;
++see ``files/additional/make_gt.py``).
++"""
++
++from __future__ import annotations
++
++import glob
++import os
++from typing import Any, Dict, List
++
++import duckdb
++import pandas as pd
++import tomli
++
++ADDITIONAL_FILES_DIR = os.path.abspath(
++    os.path.join(os.path.dirname(__file__), "..", "..", "..", "files", "additional")
++)
++FILES_DIR = os.path.dirname(ADDITIONAL_FILES_DIR)
++
++ECOMM_SCALE_FACTOR = 1000
++MMQA_SCALE_FACTOR = 400
++ECOMM_QUERY_IDS = {1, 2, 3, 4}
++MMQA_QUERY_IDS = {5, 6, 7, 8, 9, 10}
++
++
++class AdditionalScenario:
++    def __init__(self, scale_factor: int = None):
++        # The scale factors are fixed per query family; ``scale_factor`` is ignored.
++        self.scale_factor = scale_factor
++        self.queries = self._load_queries()
++
++    def _load_queries(self) -> Dict[int, Any]:
++        queries = {}
++        for file in glob.glob(os.path.join(ADDITIONAL_FILES_DIR, "queries", "*.toml")):
++            with open(file, "rb") as f:
++                data = tomli.load(f)
++            queries[data["metadata"]["query_id"]] = data
++        return queries
++
++    @staticmethod
++    def ecomm_data_dir() -> str:
++        return os.path.join(FILES_DIR, "ecomm", "data", f"sf_{ECOMM_SCALE_FACTOR}")
++
++    @staticmethod
++    def mmqa_data_dir() -> str:
++        return os.path.join(FILES_DIR, "mmqa", "data", f"sf_{MMQA_SCALE_FACTOR}")
++
++    @staticmethod
++    def albums_csv() -> str:
++        return os.path.join(ADDITIONAL_FILES_DIR, "data", "mmqa_albums_sf400.csv")
++
++    def setup_scenario(self, systems: List[str]) -> None:
++        from scenario.ecomm.ecomm_scenario import EcommScenario
++        from scenario.mmqa.mmqa_scenario import MMQAScenario
++
++        EcommScenario(scale_factor=ECOMM_SCALE_FACTOR).setup_scenario(systems)
++        MMQAScenario(scale_factor=MMQA_SCALE_FACTOR).setup_scenario(systems)
++
++    def discover_available_queries(self, system_name: str = None) -> List[int]:
++        return sorted(self.queries)
++
++    def get_nl_query_text(self, query_id: int) -> str:
++        return self.queries[int(query_id)]["definition"]["natural_language"].strip()
++
++    def get_ground_truth(self, query_id: int) -> pd.DataFrame:
++        definition = self.queries[int(query_id)]["definition"]
++        if int(query_id) in ECOMM_QUERY_IDS:
++            con = duckdb.connect()
++            con.execute(f"set file_search_path = '{self.ecomm_data_dir()}'")
++            df = con.execute(definition["ground_truth"]).df()
++            con.close()
++            return df
++        return pd.DataFrame({"id": list(definition["ground_truth"])})
++
++    def get_accuracy_measure_for_query(self, query_id: int) -> str:
++        return self.queries[int(query_id)]["definition"]["accuracy_metric"]
+diff --git a/src/scenario/additional/evaluation/evaluate.py b/src/scenario/additional/evaluation/evaluate.py
+new file mode 100644
+index 0000000..443dca4
+--- /dev/null
++++ b/src/scenario/additional/evaluation/evaluate.py
+@@ -0,0 +1,46 @@
++"""Evaluator for the Additional scenario: set-F1 over the ``id`` column."""
++
++from __future__ import annotations
++
++import re
++import sys
++from pathlib import Path
++
++import pandas as pd
++
++sys.path.append(str(Path(__file__).parent.parent.parent))
++from evaluator.generic_evaluator import GenericEvaluator  # noqa: E402
++
++sys.path.append(str(Path(__file__).parent.parent))
++from additional.additional_scenario import MMQA_QUERY_IDS, AdditionalScenario  # noqa: E402
++
++
++def _canon_album_ids(df: pd.DataFrame) -> pd.DataFrame:
++    """Album ids may come back as ints, floats or strings; compare their digits."""
++    if df is None or df.empty or "id" not in df.columns:
++        return pd.DataFrame({"id": []})
++    ids = []
++    for v in df["id"].dropna():
++        m = re.findall(r"\d+", str(v))
++        if len(m) == 1:
++            ids.append(m[0])
++    return pd.DataFrame({"id": ids})
++
++
++class AdditionalEvaluator(GenericEvaluator):
++    def __init__(self, use_case: str, scale_factor: int = None) -> None:
++        super().__init__(use_case, scale_factor)
++        self.scenario_handler = AdditionalScenario(scale_factor=scale_factor)
++
++    def _load_domain_data(self) -> None:
++        pass
++
++    def _get_ground_truth(self, query_id: int) -> pd.DataFrame:
++        return self.scenario_handler.get_ground_truth(query_id)
++
++    def _evaluate_single_query(self, query_id, system_results, ground_truth):
++        if int(query_id) in MMQA_QUERY_IDS:
++            system_results = _canon_album_ids(system_results)
++            ground_truth = _canon_album_ids(ground_truth)
++        measure = self.scenario_handler.get_accuracy_measure_for_query(query_id)
++        return GenericEvaluator.compute_accuracy_score(measure, ground_truth, system_results)
+diff --git a/src/scenario/additional/runner/kathdb_runner/kathdb_runner.py b/src/scenario/additional/runner/kathdb_runner/kathdb_runner.py
+new file mode 100644
+index 0000000..ab26727
+--- /dev/null
++++ b/src/scenario/additional/runner/kathdb_runner/kathdb_runner.py
+@@ -0,0 +1,46 @@
++"""KathDB runner for the Additional scenario."""
++
++from __future__ import annotations
++
++from pathlib import Path
++
++import pandas as pd
++from kathdb.common.view_schema import Modality
++
++from runner.generic_kathdb_runner.generic_kathdb_runner import GenericKathDBRunner
++from scenario.additional.additional_scenario import ECOMM_QUERY_IDS, AdditionalScenario
++from scenario.ecomm.runner.kathdb_runner.kathdb_runner import register_ecomm_tables
++
++# Product name / description are hidden: the garment kind must come from the image.
++_ECOMM_COLUMNS = ["id", "price", "brandName", "masterCategory", "styleImages"]
++
++
++class KathDBRunner(GenericKathDBRunner):
++    QUERY_IDS = list(range(1, 11))
++
++    def _query_text(self, query_id: int) -> str:
++        return self.scenario_handler.get_nl_query_text(query_id)
++
++    def _register_tables(self, db, query_id: int) -> None:
++        if query_id in ECOMM_QUERY_IDS:
++            register_ecomm_tables(db, Path(AdditionalScenario.ecomm_data_dir()), _ECOMM_COLUMNS)
++            return
++        data_dir = Path(AdditionalScenario.mmqa_data_dir())
++        albums = pd.read_csv(AdditionalScenario.albums_csv())
++        images = pd.read_csv(data_dir / "thalamusdb_images.csv")
++        df = images.merge(albums[["image_filename", "album"]], on="image_filename")
++        df["image_id"] = df["row_id"].astype(int)
++        df["image_path"] = df["image_filename"].apply(lambda f: str(data_dir / "images" / f))
++        db.register_table(
++            df[["album", "image_id", "image_path"]],
++            "images",
++            column_modalities={"image_path": Modality.IMAGE},
++            description=(
++                "A table of images. Columns: album (a given integer album id; each "
++                "image belongs to one album / collection), image_id (integer image "
++                "id), image_path (the image). Decide each image's content from the pixels."
++            ),
++        )
++
++    def _get_empty_results_dataframe(self, query_id: int) -> pd.DataFrame:
++        return self._empty_frame(["id"])
+diff --git a/src/scenario/ecomm/ecomm_scenario.py b/src/scenario/ecomm/ecomm_scenario.py
+index 93befef..22be339 100644
+--- a/src/scenario/ecomm/ecomm_scenario.py
++++ b/src/scenario/ecomm/ecomm_scenario.py
+@@ -103,6 +103,8 @@ class EcommScenario:
+                 pass  # Nothing to do. LOTUS works on raw files.
+             elif system == "palimpzest":
+                 pass  # Nothing to do. Palimpzest works on raw files.
++            elif system == "kathdb":
++                pass  # Nothing to do. KathDB works on raw files.
+             else:
+                 raise ValueError(f"Unsupported system: {system}")
+ 
+diff --git a/src/scenario/ecomm/runner/kathdb_runner/kathdb_runner.py b/src/scenario/ecomm/runner/kathdb_runner/kathdb_runner.py
+new file mode 100644
+index 0000000..f7a7972
+--- /dev/null
++++ b/src/scenario/ecomm/runner/kathdb_runner/kathdb_runner.py
+@@ -0,0 +1,78 @@
++"""KathDB runner for the E-Commerce scenario."""
++
++from __future__ import annotations
++
++import pandas as pd
++from kathdb.common.view_schema import Modality
++
++from runner.generic_kathdb_runner.generic_kathdb_runner import GenericKathDBRunner
++
++# styles_details is trimmed to the columns the benchmark SQL references; per-query
++# extras expose the relational attributes a query legitimately needs.
++_BASE_COLUMNS = ["id", "price", "productDisplayName", "productDescriptors", "styleImages"]
++_EXTRA_COLUMNS = {
++    4: ["baseColour"],
++    5: ["masterCategory", "subCategory"],
++    6: ["masterCategory", "subCategory"],
++    9: ["baseColour", "colour1", "colour2"],
++    10: ["baseColour"],
++    12: ["masterCategory"],
++}
++_EMPTY_SCHEMAS = {
++    1: ["id"],
++    2: ["image_id"],
++    3: ["id", "category"],
++    4: ["id", "category"],
++    5: ["id", "category"],
++    6: ["id", "category"],
++    7: ["id"],
++    8: ["id"],
++    9: ["id"],
++    10: ["id", "color", "price", "brandName"],
++    11: ["id"],
++    12: ["id"],
++    13: ["id"],
++    14: ["id"],
++}
++
++
++def register_ecomm_tables(db, data_path, columns) -> None:
++    """Register ``styles_details`` (restricted to *columns*) and ``image_mapping``."""
++    styles = pd.read_parquet(data_path / "styles_details.parquet")
++    styles = styles[[c for c in columns if c in styles.columns]]
++    images = pd.read_parquet(data_path / "image_mapping.parquet")
++    images["image_path"] = str(data_path / "images") + "/" + images["filename"].astype(str)
++    db.register_table(
++        styles,
++        "styles_details",
++        description=(
++            "A table that contains detailed fashion product information. "
++            f"Available columns: {', '.join(styles.columns)}"
++        ),
++    )
++    db.register_table(
++        images,
++        "image_mapping",
++        column_modalities={"image_path": Modality.IMAGE},
++        description=(
++            "A table that maps product ids to image filenames, links, and image_path "
++            "for the product image"
++        ),
++    )
++
++
++class KathDBRunner(GenericKathDBRunner):
++    QUERY_IDS = list(range(1, 15))
++
++    def _query_text(self, query_id: int) -> str:
++        return self.scenario_handler.queries[int(query_id)]["definition"][
++            "natural_language"
++        ].strip()
++
++    def _register_tables(self, db, query_id: int) -> None:
++        register_ecomm_tables(
++            db, self.data_path, _BASE_COLUMNS + _EXTRA_COLUMNS.get(query_id, [])
++        )
++
++    def _get_empty_results_dataframe(self, query_id: int) -> pd.DataFrame:
++        return self._empty_frame(_EMPTY_SCHEMAS.get(query_id, []))
+diff --git a/src/scenario/mmqa/evaluation/evaluate.py b/src/scenario/mmqa/evaluation/evaluate.py
+index 490a119..d5a2e5e 100644
+--- a/src/scenario/mmqa/evaluation/evaluate.py
++++ b/src/scenario/mmqa/evaluation/evaluate.py
+@@ -1,6 +1,7 @@
+ """Evaluator for the MMQA dataset."""
+ 
+ import json
++import re
+ from typing import Union
+ 
+ import pandas as pd
+@@ -37,6 +38,20 @@ def compute_metrics(results: list, ground_truth: Union[set, list]):
+     return QueryMetricRetrieval(precision, recall, f1_score)
+ 
+ 
++# Integer query ids (as used on the command line and in the paper) -> query file name.
++_MMQA_ID_TO_NAME = {
++    1: "1", 2: "2a", 3: "2b", 4: "3a", 5: "3f", 6: "4",
++    7: "5", 8: "6a", 9: "6b", 10: "6c", 11: "7",
++}
++
++
++def _mmqa_name(query_id) -> str:
++    try:
++        return _MMQA_ID_TO_NAME.get(int(query_id), str(query_id))
++    except (TypeError, ValueError):
++        return str(query_id)
++
++
+ class MMQAEvaluator(GenericEvaluator):
+     def __init__(self, use_case: str, scale_factor: int) -> None:
+         super().__init__(use_case, scale_factor)
+@@ -47,16 +62,14 @@ class MMQAEvaluator(GenericEvaluator):
+         pass
+ 
+     def _get_ground_truth(self, query_id: int) -> str:
+-        return self._root / "query" / "natural_language" / f"q{query_id}.json"
++        return self._root / "query" / "natural_language" / f"q{_mmqa_name(query_id)}.json"
+ 
+     def _evaluate_single_query(
+         self, query_id: int, system_results: pd.DataFrame, ground_truth: str
+     ) -> "QueryMetricRetrieval | QueryMetricAggregation | QueryMetricRank":
+         """Evaluate a single query based on its type."""
+-        try:
+-            query_id = int(query_id)
+-        except ValueError:
+-            query_id = int(query_id[:-1])  # "3a" -> "3"
++        # "2a" -> 2: the letter selects the ground-truth file, not the evaluator.
++        query_id = int(re.match(r"\d+", _mmqa_name(query_id)).group())
+         evaluate_fn = self._discover_evaluate_impl(query_id)
+         return evaluate_fn(system_results, ground_truth)
+ 
+diff --git a/src/scenario/mmqa/mmqa_scenario.py b/src/scenario/mmqa/mmqa_scenario.py
+index 307e591..25ae09f 100644
+--- a/src/scenario/mmqa/mmqa_scenario.py
++++ b/src/scenario/mmqa/mmqa_scenario.py
+@@ -63,6 +63,8 @@ class MMQAScenario:
+                 pass  # Nothing to do. Palimpzest works on raw files.
+             elif system == "thalamusdb":
+                 pass  # Nothing to do. ThalamusDB works on raw files.
++            elif system == "kathdb":
++                pass  # Nothing to do. KathDB works on raw files.
+             else:
+                 raise ValueError(f"Unsupported system: {system}")
+ 
+diff --git a/src/scenario/mmqa/runner/kathdb_runner/kathdb_runner.py b/src/scenario/mmqa/runner/kathdb_runner/kathdb_runner.py
+new file mode 100644
+index 0000000..0c330e1
+--- /dev/null
++++ b/src/scenario/mmqa/runner/kathdb_runner/kathdb_runner.py
+@@ -0,0 +1,123 @@
++"""KathDB runner for the MMQA scenario."""
++
++from __future__ import annotations
++
++import json
++
++import pandas as pd
++from kathdb.common.view_schema import Modality
++
++from runner.generic_kathdb_runner.generic_kathdb_runner import GenericKathDBRunner
++from scenario.mmqa.evaluation.evaluate import _MMQA_ID_TO_NAME
++
++_EMPTY_SCHEMAS = {
++    "1": ["director"],
++    "2a": ["ID", "image_id"],
++    "2b": ["ID", "image_id", "color"],
++    "3a": ["title"],
++    "3f": ["title"],
++    "4": ["genre", "movies_in_genre"],
++    "5": ["actor"],
++    "6a": ["Airlines"],
++    "6b": ["Airlines"],
++    "6c": ["Airlines"],
++    "7": ["Airlines", "image_id"],
++}
++
++# lizzy_caplan_text_data also holds plots of movies she did not appear in; the
++# genre queries (ids 4, 5, 6) ask about her filmography, so the table is scoped to it.
++_LIZZY_CAPLAN_FILMOGRAPHY = [
++    "127 Hours", "3, 2, 1... Frankie Go Boom", "Allied", "Bachelorette", "Cloverfield",
++    "Cobweb", "Crashing", "Crossing Over", "Extinction", "High Road",
++    "Hot Tub Time Machine", "Item 47", "Love Is the Drug", "Mean Girls",
++    "My Best Friend's Girl", "Now You See Me 2", "Orange County", "Queens of Country",
++    "Save the Date", "The Disaster Artist", "The Interview",
++    "The Last Rites of Ransom Pride", "The Night Before",
++    "The People We Hate at the Wedding",
++]
++_FILMOGRAPHY_QUERY_IDS = {4, 5, 6}
++
++
++class KathDBRunner(GenericKathDBRunner):
++    QUERY_IDS = list(range(1, 12))
++
++    def _query_text(self, query_id: int) -> str:
++        name = _MMQA_ID_TO_NAME[int(query_id)]
++        with open(self.query_path / "natural_language" / f"q{name}.json") as f:
++            return json.load(f)["nl_question"]
++
++    def _register_tables(self, db, query_id: int) -> None:
++        ben_piazza = self.load_data("ben_piazza.csv")
++        ben_piazza_text = self.load_data("ben_piazza_text_data.csv").drop(
++            columns=["row_id", "url", "id"], errors="ignore"
++        )
++        lizzy = self.load_data("lizzy_caplan_text_data.csv").drop(
++            columns=["row_id", "url"], errors="ignore"
++        )
++        if query_id in _FILMOGRAPHY_QUERY_IDS and "title" in lizzy.columns:
++            lizzy = lizzy[lizzy["title"].isin(_LIZZY_CAPLAN_FILMOGRAPHY)].reset_index(
++                drop=True
++            )
++        tampa = self.load_data("tampa_international_airport.csv").drop(
++            columns=["row_id"], errors="ignore"
++        )
++        ap_warrior = self.load_data("ap_warrior.csv")
++        images = self.load_data("thalamusdb_images.csv").copy()
++        images["image_path"] = images["image_filename"].apply(
++            lambda f: str(self.data_path / "images" / f)
++        )
++        images["image_id"] = images["image_filename"]
++
++        db.register_table(
++            ben_piazza,
++            "ben_piazza",
++            description=(
++                "A table with movie credits for actor Ben Piazza, including columns "
++                "like Title, Year, and Role"
++            ),
++        )
++        db.register_table(
++            ben_piazza_text,
++            "ben_piazza_text_data",
++            description=(
++                "A table with textual descriptions of movies that Ben Piazza appeared "
++                "in, including title and text columns"
++            ),
++        )
++        db.register_table(
++            lizzy,
++            "lizzy_caplan_text_data",
++            description=(
++                "A table with textual descriptions of movies that Lizzy Caplan "
++                "appeared in, including title and text columns"
++            ),
++        )
++        db.register_table(
++            tampa,
++            "tampa_international_airport",
++            description=(
++                "A table with airline information at Tampa International Airport, "
++                "including Airlines and Destinations columns"
++            ),
++        )
++        db.register_table(
++            ap_warrior,
++            "ap_warrior",
++            description=(
++                "A table with horse racing data for A.P. Warrior, including Track, "
++                "Date, and race result columns"
++            ),
++        )
++        db.register_table(
++            images,
++            "images",
++            column_modalities={"image_path": Modality.IMAGE},
++            description=(
++                "A table of images with row_id, image_filename, image_path, and "
++                "image_id (image_id is the filename, for use in results). Used for "
++                "logo and visual queries (e.g. airline logos, racetrack logos)."
++            ),
++        )
++
++    def _get_empty_results_dataframe(self, query_id: int) -> pd.DataFrame:
++        return self._empty_frame(_EMPTY_SCHEMAS.get(_MMQA_ID_TO_NAME.get(query_id, ""), []))
+diff --git a/src/scenario/movie/movie_scenario.py b/src/scenario/movie/movie_scenario.py
+index 0f7bee3..b73229e 100644
+--- a/src/scenario/movie/movie_scenario.py
++++ b/src/scenario/movie/movie_scenario.py
+@@ -110,6 +110,8 @@ class MovieScenario:
+                 pass  # Nothing to do. Palimpzest works on raw files.
+             elif system == "thalamusdb":
+                 pass  # Nothing to do. ThalamusDB works on raw files.
++            elif system == "kathdb":
++                pass  # Nothing to do. KathDB works on raw files.
+             else:
+                 raise ValueError(f"Unsupported system: {system}")
+ 
+diff --git a/src/scenario/movie/runner/kathdb_runner/kathdb_runner.py b/src/scenario/movie/runner/kathdb_runner/kathdb_runner.py
+new file mode 100644
+index 0000000..5d240fa
+--- /dev/null
++++ b/src/scenario/movie/runner/kathdb_runner/kathdb_runner.py
+@@ -0,0 +1,61 @@
++"""KathDB runner for the Movie scenario."""
++
++from __future__ import annotations
++
++import pandas as pd
++
++from runner.generic_kathdb_runner.generic_kathdb_runner import GenericKathDBRunner
++
++_EMPTY_SCHEMAS = {
++    1: ["reviewId"],
++    2: ["reviewId"],
++    3: ["positive_review_cnt"],
++    4: ["positivity_ratio"],
++    5: ["id", "reviewId1", "reviewId2"],
++    6: ["id", "reviewId1", "reviewId2"],
++    7: ["id", "reviewId1", "reviewId2"],
++    8: ["scoreSentiment", "count"],
++    9: ["reviewId", "reviewScore"],
++    10: ["movieId", "movieScore"],
++}
++
++
++class KathDBRunner(GenericKathDBRunner):
++    QUERY_IDS = list(range(1, 11))
++
++    def _query_text(self, query_id: int) -> str:
++        return self.get_query_text(query_id, "natural_language")
++
++    def _register_tables(self, db, query_id: int) -> None:
++        movies = self.load_data("Movies.csv")
++        movies = movies.drop(
++            columns=[c for c in ("tomatoMeter", "audienceScore") if c in movies.columns]
++        )
++        reviews = self.load_data("Reviews.csv")
++        # Ground-truth sentiment columns are hidden: sentiment must come from reviewText.
++        reviews = reviews.drop(
++            columns=[
++                c
++                for c in ("originalScore", "scoreSentiment", "reviewState")
++                if c in reviews.columns
++            ]
++        ).dropna(subset=["reviewText"])
++        db.register_table(
++            movies,
++            "movies",
++            description=(
++                "A table that contains information about movies including titles, "
++                "scores, ratings, genres, directors, and other metadata"
++            ),
++        )
++        db.register_table(
++            reviews,
++            "reviews",
++            description=(
++                "A table that contains movie reviews with metadata and review text "
++                "content for sentiment analysis"
++            ),
++        )
++
++    def _get_empty_results_dataframe(self, query_id: int) -> pd.DataFrame:
++        return self._empty_frame(_EMPTY_SCHEMAS.get(query_id, []))
