@@ -1505,10 +1505,10 @@ index 9f74e27..fae69a5 100755
  def run_benchmark(
 diff --git a/src/runner/generic_kathdb_runner/generic_kathdb_runner.py b/src/runner/generic_kathdb_runner/generic_kathdb_runner.py
 new file mode 100644
-index 0000000..7b8148c
+index 0000000..a9450e4
 --- /dev/null
 +++ b/src/runner/generic_kathdb_runner/generic_kathdb_runner.py
-@@ -0,0 +1,162 @@
+@@ -0,0 +1,186 @@
 +"""SemBench runner for KathDB (https://github.com/xertxiao/KathDB).
 +
 +Each query gets a fresh KathDB instance (its own catalog and worker); the function
@@ -1529,6 +1529,7 @@ index 0000000..7b8148c
 +
 +from __future__ import annotations
 +
++import dataclasses
 +import os
 +import shutil
 +import tempfile
@@ -1543,6 +1544,29 @@ index 0000000..7b8148c
 +from ..generic_runner import GenericQueryMetric, GenericRunner
 +
 +_PLAN_STAGES = ("parser", "plan_gen", "grouping", "codegen")
++
++
++def _config_overrides() -> dict:
++    """``KATHDB_CFG_<FIELD>`` environment variables override KathDBConfig defaults
++    (e.g. ``KATHDB_CFG_GROUPING_MAX_GROUP_SIZE=5``; ``none`` clears an optional field)."""
++    out: dict = {}
++    for f in dataclasses.fields(KathDBConfig):
++        raw = os.environ.get(f"KATHDB_CFG_{f.name.upper()}")
++        if raw is None:
++            continue
++        raw = raw.strip()
++        t = str(f.type)
++        if raw.lower() in ("none", "null", ""):
++            out[f.name] = None
++        elif "bool" in t:
++            out[f.name] = raw.lower() in ("true", "1", "yes")
++        elif "int" in t:
++            out[f.name] = int(raw)
++        elif "float" in t:
++            out[f.name] = float(raw)
++        else:
++            out[f.name] = raw
++    return out
 +
 +
 +def _env_bool(key: str, default: bool) -> bool:
@@ -1611,7 +1635,7 @@ index 0000000..7b8148c
 +            generated_functions=_env_bool("KATHDB_GENERATED_FUNCTIONS", False),
 +            worker_env=self._worker_env,
 +            num_executor_workers=int(os.environ.get("KATHDB_NUM_EXECUTOR_WORKERS", "1")),
-+            config=KathDBConfig(generated_fn_dir=fn_dir),
++            config=KathDBConfig(generated_fn_dir=fn_dir, **_config_overrides()),
 +        )
 +
 +    def execute_query(self, query_id: int) -> GenericQueryMetric:
@@ -1985,7 +2009,7 @@ index 0000000..f7a7972
 +    def _get_empty_results_dataframe(self, query_id: int) -> pd.DataFrame:
 +        return self._empty_frame(_EMPTY_SCHEMAS.get(query_id, []))
 diff --git a/src/scenario/mmqa/evaluation/evaluate.py b/src/scenario/mmqa/evaluation/evaluate.py
-index 490a119..d5a2e5e 100644
+index 490a119..97f46b4 100644
 --- a/src/scenario/mmqa/evaluation/evaluate.py
 +++ b/src/scenario/mmqa/evaluation/evaluate.py
 @@ -1,6 +1,7 @@
@@ -2037,6 +2061,24 @@ index 490a119..d5a2e5e 100644
          evaluate_fn = self._discover_evaluate_impl(query_id)
          return evaluate_fn(system_results, ground_truth)
  
+@@ -86,6 +99,8 @@ class MMQAEvaluator(GenericEvaluator):
+ 
+         results = set()
+         for _, row in system_results.iterrows():
++            if not isinstance(row["image_id"], str):  # missing image -> no match
++                continue
+             image_id = row["image_id"].split("/")[-1]
+             image_id = image_id.replace("%2e", ".")
+ 
+@@ -182,6 +197,8 @@ class MMQAEvaluator(GenericEvaluator):
+ 
+         results = set()
+         for _, row in system_results.iterrows():
++            if not isinstance(row["image_id"], str):  # missing image -> no match
++                continue
+             image_id = row["image_id"].split("/")[-1]
+             image_id = image_id.replace("%2e", ".")
+             results.add((row["Airlines"], image_id))
 diff --git a/src/scenario/mmqa/mmqa_scenario.py b/src/scenario/mmqa/mmqa_scenario.py
 index 307e591..25ae09f 100644
 --- a/src/scenario/mmqa/mmqa_scenario.py
