@@ -34,6 +34,32 @@ with KathDB("catalog.duckdb", human_in_the_loop=False) as db:
     print(db.last_grouping_trace())       # what the optimizer fused
 ```
 
+## Interactive shell
+
+`pip install -e .` also installs the `kathdb` command, a REPL in the style of a coding
+agent: type a question, or a slash command.
+
+```
+$ kathdb --db catalog.duckdb
+kathdb> /register-data products.csv --image image_path
+kathdb> /model anthropic/claude-opus-5
+kathdb> Which products priced under 50 show a logo in their product image?
+kathdb> /config logical_rewrite=false phy_opt=true
+```
+
+| command | what it does |
+|---|---|
+| `/model [<id> \| planner <id> \| ai-op <id>]` | show or set the planner / AI-op model |
+| `/register-data <file or dir> [--name N] [--image COL] [--text COL] [--audio COL] [--video COL]` | register a CSV / Parquet file, or auto-discover a directory |
+| `/tables [name]` | list tables, or inspect one |
+| `/config [key=value ...]` | show every setting (basic + advanced) or change some live |
+| `/cost`, `/plan` | tokens / USD / seconds per stage, and what the optimizer fused |
+| `/help`, `/exit` | |
+
+Settings chosen before the first query are applied when KathDB starts, so no API key is
+needed until you ask something. `kathdb -c "/register-data data/" -c "/model openai/gpt-4o"`
+runs commands before dropping into the prompt.
+
 ## Configuration
 
 **Basic settings** — keyword arguments of `KathDB(...)` (also fields of
@@ -66,6 +92,7 @@ per-stage model overrides, temperatures, retry budgets, worker timeouts,
 ```
 src/kathdb/
   kathdb.py            KathDB facade: register tables, query, configure
+  cli/                 the `kathdb` interactive shell
   config.py            KathDBConfig (basic / advanced settings) + LLM factory
   parser/              NL question -> atomic action sketch (+ optional human review,
                        + library-steered variant)

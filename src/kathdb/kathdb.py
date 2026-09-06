@@ -515,6 +515,11 @@ class KathDB:
         return result_ctx
 
     @property
+    def config(self) -> KathDBConfig:
+        """Current settings (read-only view; change them with :meth:`configure`)."""
+        return self._config
+
+    @property
     def worker_env_name(self) -> str | None:
         """Conda env the worker runs in; pass it as ``worker_env`` to reuse it."""
         return self._worker_mgr.env_name
