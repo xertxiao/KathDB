@@ -33,3 +33,7 @@ Result: `files/ecomm/raw_results/kathdb/Q1.csv`; time, tokens, cost and quality:
 
 Use cases: `movie`, `ecomm`, `mmqa`, `additional` (Q1–Q10; `--scale-factor` is ignored,
 the scenario fixes e-com 1000 / MMQA 400).
+
+Function reuse across queries is off by default; enable it with
+`KATHDB_GENERATED_FUNCTIONS=true` in the environment (`KATHDB_LOGICAL_REWRITE=false`
+turns the optimizer off).

@@ -1505,7 +1505,7 @@ index 9f74e27..fae69a5 100755
  def run_benchmark(
 diff --git a/src/runner/generic_kathdb_runner/generic_kathdb_runner.py b/src/runner/generic_kathdb_runner/generic_kathdb_runner.py
 new file mode 100644
-index 0000000..30d4c1f
+index 0000000..7b8148c
 --- /dev/null
 +++ b/src/runner/generic_kathdb_runner/generic_kathdb_runner.py
 @@ -0,0 +1,162 @@
@@ -1520,7 +1520,7 @@ index 0000000..30d4c1f
 +  KATHDB_LOGICAL_REWRITE      true/false, run the grouping optimizer (default true)
 +  KATHDB_PHY_OPT              true/false, allow physical optimizations (default false)
 +  KATHDB_PREBUILT_FUNCTIONS   true/false (default true)
-+  KATHDB_GENERATED_FUNCTIONS  true/false, reuse + save functions across queries (default true)
++  KATHDB_GENERATED_FUNCTIONS  true/false, reuse + save functions across queries (default false)
 +  KATHDB_NUM_EXECUTOR_WORKERS worker processes (default 1)
 +  KATHDB_WORKER_ENV           existing conda env for the worker (default: KathDB provisions one)
 +  KATHDB_FN_DIR               function library directory
@@ -1608,7 +1608,7 @@ index 0000000..30d4c1f
 +            logical_rewrite=_env_bool("KATHDB_LOGICAL_REWRITE", True),
 +            phy_opt=_env_bool("KATHDB_PHY_OPT", False),
 +            prebuilt_functions=_env_bool("KATHDB_PREBUILT_FUNCTIONS", True),
-+            generated_functions=_env_bool("KATHDB_GENERATED_FUNCTIONS", True),
++            generated_functions=_env_bool("KATHDB_GENERATED_FUNCTIONS", False),
 +            worker_env=self._worker_env,
 +            num_executor_workers=int(os.environ.get("KATHDB_NUM_EXECUTOR_WORKERS", "1")),
 +            config=KathDBConfig(generated_fn_dir=fn_dir),
