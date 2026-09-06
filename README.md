@@ -81,8 +81,8 @@ runs commands before dropping into the prompt.
 **Advanced settings** — edit the defaults in `src/kathdb/config.py` (or pass a
 `KathDBConfig`): `parser_type` (`action` / `action_with_functions` /
 `action_with_functions_with_coarsening`), `grouping_rank_k=10`,
-`grouping_max_group_size=5`, `grouping_base_plan_profiling=True`,
-`grouping_sample_rows=50`, `image_quality_low_ai_op=True`, `codegen_concurrency=1`,
+`grouping_max_group_size=None`, `grouping_base_plan_profiling=True`,
+`grouping_sample_rows=10`, `image_quality_low_ai_op=True`, `codegen_concurrency=1`,
 per-stage model overrides, temperatures, retry budgets, worker timeouts,
 `generated_fn_dir`, `runtime_dir`, `log_level`. Everything can be changed live with
 `db.configure(**overrides)`.

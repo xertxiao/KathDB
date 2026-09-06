@@ -27,7 +27,7 @@ def test_defaults_validate():
     assert cfg.max_generated_functions == 10
     assert cfg.parser_type == "action_with_functions_with_coarsening"
     assert cfg.grouping_rank_k == 10
-    assert cfg.grouping_max_group_size == 5
+    assert cfg.grouping_max_group_size is None
     assert cfg.grouping_base_plan_profiling is True
     assert cfg.image_quality_low_ai_op is True
     assert cfg.num_executor_workers == 1

@@ -236,7 +236,7 @@ class BasePlanCodegen:
                 top_str = ", ".join(
                     f"{_truncate_value(v)}x{int(c)}" for v, c in counts.items()
                 )
-                piece = f"{col}: {n_distinct} distinct in sample"
+                piece = f"{col}: {n_distinct}/{n} distinct in sample"
                 if top_str:
                     piece += f", top [{top_str}]"
                 if n_null:
@@ -244,7 +244,11 @@ class BasePlanCodegen:
                 chunks.append(piece)
             except Exception:  # noqa: BLE001 - stats are best-effort
                 continue
-        return "values{ " + " | ".join(chunks) + " }" if chunks else ""
+        if not chunks:
+            return ""
+        full = self.full_cardinality.get(rel) if rel else None
+        scale = f"sample of {len(df)} rows" + (f" out of ~{int(full)} full rows" if full else "")
+        return f"values[{scale}]{{ " + " | ".join(chunks) + " }"
 
     def _build_full_cardinality(self) -> None:
         """Estimate each relation's FULL-data cardinality.

@@ -185,12 +185,14 @@ class KathDBConfig:
     # -- Grouping optimizer --
     # Candidate groupings ranked per LLM call; more candidates run a knockout tournament.
     grouping_rank_k: int = 10
-    # Max atomic operators fused into one group. None = no cap.
-    grouping_max_group_size: int | None = 5
+    # Max atomic operators fused into one group. None = no cap, so a fused group can
+    # absorb every relational operator around a semantic one (a cap leaves downstream
+    # filters outside the group and the fused code then calls the model on more rows).
+    grouping_max_group_size: int | None = None
     # Run the atomic plan's code on a sample at plan time so the ranker sees measured
     # cardinalities / selectivities (model calls on ``grouping_sample_rows`` rows).
     grouping_base_plan_profiling: bool = True
-    grouping_sample_rows: int = 50
+    grouping_sample_rows: int = 10
 
     # -- Results --
     # After a query, ask the planner model which result tables are worth keeping in the
@@ -231,7 +233,7 @@ class KathDBConfig:
     worker_connect_timeout_s: float = 180.0
     # Wall-clock budget for one execution of generated code; on expiry the worker is
     # killed and respawned.
-    worker_exec_timeout_s: float = 1800.0
+    worker_exec_timeout_s: float = 3600.0
     # Directory the generated scripts are staged in. None = a temp dir.
     runtime_dir: str | None = None
 
