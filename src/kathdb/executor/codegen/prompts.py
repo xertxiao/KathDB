@@ -101,10 +101,17 @@ def _phys_exec_rule(image_detail_low: bool = True, phy_opt: bool = True) -> str:
         "before the model; giving one call enough context to settle the question in "
         "a single judgement (cheap text in the prompt beats re-sending images); "
         "reusing an extracted attribute instead of re-deriving it; stopping once "
-        "the answer is determined. Watch the growth rate above all: never let total "
+        "the answer is determined — only when every row you skip could neither appear "
+        "in nor change the output (a LIMIT reached, a per-key predicate already "
+        "decided); when the output must list every qualifying row or pair, there is "
+        "no early exit. Watch the growth rate above all: never let total "
         "tokens scale with a product of two inputs (e.g. judging every pair, which "
         "re-sends each image once per candidate) when a single pass over one input "
-        "— extract once, then match in code — answers the query."
+        "— extract once, then match in code — answers the query. Matching in code "
+        "means exact or normalized equality against known values; a fuzzy heuristic "
+        "(token overlap, substring, edit distance) is not a substitute for the model's "
+        "judgement — when the match itself needs judgement, give the model the "
+        "candidate list inside the single per-record call and let it choose."
     )
     rule += (
             " You MAY call the provided `kathdb.fn` operators"
@@ -712,7 +719,10 @@ def _format_optimization_rationale_block(rationale: str | None) -> str:
     return (
         "## Optimization Rationale\n"
         "The LP grouping stage picked this fusion because:\n\n"
-        f"{text}\n"
+        f"{text}\n\n"
+        "Use it as the intended structure. If it conflicts with the cost rules below "
+        "(one pass over a single input, no loop over pairs of two inputs, an early exit "
+        "only when the skipped rows cannot change the output), the rules win.\n"
     )
 
 

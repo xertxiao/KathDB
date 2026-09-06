@@ -139,7 +139,11 @@ an input what it truly needs to produce its outputs, given what its consumers
 require. Some input relations are intermediate results produced by other plan
 nodes whose exact schemas are not yet known; declaring demands clearly lets
 the downstream code-generation step ensure those columns and constraints are
-materialized.
+materialized. When a SEMANTIC node infers an attribute that an input column
+already stores under the same meaning, also list that column in the node's
+required_columns so it is not pruned before the generated code can consult it
+or join on it (e.g., a node inferring an item's colour while the input already
+has a colour column).
 
 3. ``op_kind_decisions`` — for EVERY node listed in `## Nodes`, classify its
    final ``op_kind`` as either "SEMANTIC" (requires ML/LLM/VLM inference at

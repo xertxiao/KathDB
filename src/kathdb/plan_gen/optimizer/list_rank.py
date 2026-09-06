@@ -555,8 +555,18 @@ class ListRankSelector:
             f"{self._render_candidates(candidates)}\n\n"
             "Return candidate ids best-first. For EVERY fused group of your top candidate "
             "also return its rewrite: at most two sentences saying what the fused code "
-            "computes first, per which key it calls the model and where it stops early, "
-            "and why the result is unchanged."
+            "computes first, per which key it calls the model and where it stops early "
+            "(only where the skipped rows cannot change the output — a reached LIMIT or a "
+            "decided per-key predicate; a query that asks for ALL rows or pairs has no "
+            "early exit), and why the result is unchanged. A rewrite may only remove or "
+            "shorten calls: "
+            "the model is called in ONE pass over a single input (never a loop over pairs "
+            "of two inputs, i.e. every row of one input against every row of the other, "
+            "and never a fallback that "
+            "re-scans one input per item of another); to match against the other input, "
+            "put its candidate values in the prompt or compare by equality in code. State "
+            "how many items the model sees using the full_in~ row counts, never the "
+            "sample counts."
         )
         resp = self._code_gen._invoke_structured(
             prompt, llm=self._code_gen.generation_llm, schema=PartitionCandidateRanking
@@ -569,7 +579,14 @@ class ListRankSelector:
         ]
         seen = set(order)
         order += [i for i in range(len(candidates)) if i not in seen]
-        return [candidates[i] for i in order]
+        ranked = [candidates[i] for i in order]
+        logger.info(
+            "[list_rank] ranked %d candidate(s); top=%s; rewrites=%s",
+            len(candidates),
+            self._fmt_fused(ranked[0]),
+            [rw.rewrite.strip() for rw in (resp.rewrites or []) if rw.rewrite.strip()],
+        )
+        return ranked
 
 
 def make_selector_factory(
