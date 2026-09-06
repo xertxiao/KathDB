@@ -7,18 +7,19 @@ from pathlib import Path
 from kathdb.common.function_manager import FunctionManager
 
 
-_SPEC_TEMPLATE = """\
-from dataclasses import dataclass
-
-
-@dataclass(frozen=True)
-class {cls}Spec:
-    df_params: tuple = ("df",)
-    label: str = ""
-"""
-
 _FN_TEMPLATE = """\
-def {name}(df, label=""):
+import pandas as pd
+
+CONTRACT = {{
+    "purpose": "test function",
+    "params": {{"df": "input rows", "label": "unused"}},
+    "output": "df unchanged",
+    "example": '{name}(df, label="")',
+    "use_when": "never",
+}}
+
+
+def {name}(df: pd.DataFrame, label: str = "") -> pd.DataFrame:
     return df
 """
 
@@ -27,7 +28,6 @@ def _make_fn_dir(root: Path, name: str) -> None:
     fn_dir = root / name
     (fn_dir / "scripts").mkdir(parents=True, exist_ok=True)
     (fn_dir / "fn.md").write_text(f"# {name}\n## Output\nreturns df\n")
-    (fn_dir / "spec.py").write_text(_SPEC_TEMPLATE.format(cls=name.capitalize()))
     (fn_dir / "scripts" / "fn.py").write_text(_FN_TEMPLATE.format(name=name))
     (fn_dir / "scripts" / "__init__.py").write_text(f"from .fn import {name}\n")
 

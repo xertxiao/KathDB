@@ -4,7 +4,6 @@ langchain-core
 langchain-openai
 langchain-anthropic
 langchain-google-genai
-langgraph
 litellm
 openai
 pydantic>=2

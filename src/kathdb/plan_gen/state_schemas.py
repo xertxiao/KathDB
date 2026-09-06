@@ -1,8 +1,8 @@
-"""State schemas for plan generation."""
+"""Input / output state of :class:`~kathdb.plan_gen.plan_generator.PlanGenerator`."""
 
 from __future__ import annotations
 
-from typing import Any, Annotated, TypedDict
+from typing import Any, TypedDict
 
 from pandas import DataFrame
 from typing_extensions import NotRequired
@@ -10,22 +10,7 @@ from typing_extensions import NotRequired
 from ..common.context import DBContext
 from .plan_node import FAONode
 
-__all__ = [
-    "PlanGenInState",
-    "PlanGenState",
-    "PlanGenOutState",
-    "merge_usage_by_model",
-]
-
-
-def merge_usage_by_model(
-    a: dict[str, dict[str, Any]] | None,
-    b: dict[str, dict[str, Any]] | None,
-) -> dict[str, dict[str, Any]]:
-    """Reducer for ``usage_by_model``: per-stage keys are disjoint, so merge."""
-    out: dict[str, dict[str, Any]] = dict(a or {})
-    out.update(b or {})
-    return out
+__all__ = ["PlanGenInState", "PlanGenOutState"]
 
 
 class PlanGenInState(TypedDict):
@@ -40,20 +25,6 @@ class PlanGenInState(TypedDict):
     grouping_selector_factory: NotRequired[Any]
 
 
-class PlanGenState(TypedDict, total=False):
-    q_in: str
-    actions: list[Any]
-    relation_context: DBContext
-    input_rel_names: list[str]
-    input_rel: list[DataFrame]
-    logical_plan: FAONode
-    grouping_selector_factory: Any
-    # Populated by the optimizer when grouping is enabled.
-    grouping_trace: dict[str, Any]
-    # Per-stage token usage ("annotate", "group_actions"; "_total" added in arun).
-    usage_by_model: Annotated[dict[str, dict[str, Any]], merge_usage_by_model]
-
-
 class PlanGenOutState(TypedDict, total=False):
     q_in: str
     actions: list[Any]
@@ -61,5 +32,7 @@ class PlanGenOutState(TypedDict, total=False):
     input_rel_names: list[str]
     input_rel: list[DataFrame]
     logical_plan: FAONode
+    # Present only when the grouping optimizer ran.
     grouping_trace: dict[str, Any]
+    # Per-stage token usage ("annotate") plus "_total".
     usage_by_model: dict[str, dict[str, Any]]

@@ -1,9 +1,11 @@
-"""Per-operator code generation and execution.
+"""Per-operator code generation.
 
-:class:`CodeGenerator` schedules a logical plan's operators by data dependency
-(an operator runs once its inputs are materialized; up to ``max_workers`` at a
-time), generates Python for each, executes it on a leased worker, and on failure
-diagnoses + regenerates the code via :class:`ExecutionErrorHandler`.
+:class:`CodeGenerator` turns one plan operator into an executable
+:class:`FAOExecutableNode`: it renders the codegen prompt from the operator, its
+materialized inputs and the demand annotations, calls the generation LLM, and
+rebuilds the function signature; :meth:`_regenerate_node` produces a revised
+implementation from a failure diagnosis. Scheduling and execution live in
+:class:`kathdb.executor.Executor`.
 """
 
 from __future__ import annotations
@@ -13,8 +15,7 @@ import copy
 import json
 import threading
 import time
-from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
-from typing import Any, Mapping, TYPE_CHECKING, TypeVar
+from typing import Any, Mapping, TypeVar
 
 import pandas as pd
 from langchain_core.language_models import BaseChatModel
@@ -26,26 +27,14 @@ from ...common.function_manager import FunctionManager
 from ...common.logger import get_logger
 from ...common.utils import invoke_structured_with_retry
 from ...plan_gen.plan_node import FAONode
-from ...worker import (
-    KathDBWorkerError,
-    KathDBWorkerExecuteError,
-    KathDBWorkerInstallError,
-    KathDBWorkerLoadError,
-    WorkerClient,
-    WorkerManager,
-)
 from .codegen_tree import FAOExecutionError, FAOExecutableNode, parse_llm_function
 from .prompts import (
     format_codegen_prompt,
     format_physical_revision_prompt,
 )
 from .response_schemas import ConstrainedCodeGenerationResponse
-from .state_schemas import CodegenInState, CodegenOutState
+from .state_schemas import CodegenInState
 from .utils import map_input_relation_objects
-
-if TYPE_CHECKING:
-    from ..error_handler import ExecutionErrorHandler
-
 
 logger = get_logger(__name__)
 
@@ -273,7 +262,7 @@ def render_sibling_context(
 
 
 class CodeGenerator:
-    """Layered per-node code synthesis used by the executor."""
+    """Per-node code synthesis used by the executor and the plan-time base-plan pass."""
 
     def __init__(
         self,
@@ -309,24 +298,10 @@ class CodeGenerator:
         self.image_detail_low = image_detail_low
         self.phy_opt = phy_opt
 
-        # Set by run().
-        self._worker: WorkerClient | None = None
-        self._worker_manager: "WorkerManager | None" = None
-        # RunnableConfig forwarded into every codegen LLM call (set by run()).
-        self._config: RunnableConfig | None = None
-        # Error handler, built lazily on first failure.
-        self._layered_error_handler: "ExecutionErrorHandler | None" = None
-        self._handler_lock = threading.Lock()
+        # RunnableConfig forwarded into every codegen LLM call (set by the executor per run).
+        self.config: RunnableConfig | None = None
         # Bounds concurrent codegen LLM calls independently of execution parallelism.
         self._codegen_sem = threading.BoundedSemaphore(max(1, max_concurrent_generations))
-
-    # ------------------------------------------------------------------
-    # Compile (no-op)
-    # ------------------------------------------------------------------
-
-    def compile(self) -> None:
-        """No-op; codegen + execution happen in :meth:`run`."""
-        logger.info("CodeGenerator compiled (layered mode; no state graph).")
 
     # ------------------------------------------------------------------
     # LLM invocation helpers
@@ -341,13 +316,13 @@ class CodeGenerator:
         max_retries: int = 3,
         config: RunnableConfig | None = None,
     ) -> T:
-        """Structured LLM call with retries; ``config`` falls back to ``self._config``."""
+        """Structured LLM call with retries; ``config`` falls back to ``self.config``."""
         return invoke_structured_with_retry(
             prompt,
             llm=llm,
             schema=schema,
             max_retries=max_retries,
-            config=config if config is not None else self._config,
+            config=config if config is not None else self.config,
         )
 
     # ------------------------------------------------------------------
@@ -558,57 +533,6 @@ class CodeGenerator:
             new_node.metadata.setdefault(key, value)
         new_node.metadata["codegen_prompt"] = prompt
         return new_node
-
-    # ------------------------------------------------------------------
-    # Topological layering
-    # ------------------------------------------------------------------
-
-    @staticmethod
-    def _topo_layers(root: FAONode) -> list[list[FAONode]]:
-        """Group the plan's operators into topological layers (``input_relation``
-        and the ``logical_plan`` root excluded)."""
-        # Dedupe by ``op``: diamond plans hold duplicate instances of a shared node.
-        nodes: list[FAONode] = []
-        seen_ops: set[str] = set()
-        for n in root.iter_postorder():
-            if n is root or n.op in {"input_relation", "logical_plan"}:
-                continue
-            if n.op in seen_ops:
-                continue
-            seen_ops.add(n.op)
-            nodes.append(n)
-        producers: dict[str, FAONode] = {}
-        for n in nodes:
-            for o in n.outputs:
-                prev = producers.get(o)
-                if prev is not None and prev is not n:
-                    logger.warning(
-                        "_topo_layers: distinct nodes %r and %r both declare "
-                        "output %r; keeping %r as producer",
-                        prev.op,
-                        n.op,
-                        o,
-                        prev.op,
-                    )
-                producers.setdefault(o, n)
-
-        depth: dict[int, int] = {}
-        for n in nodes:
-            d = 0
-            for inp in n.inputs:
-                prod = producers.get(inp)
-                if prod is not None and prod is not n:
-                    pd_ = depth.get(id(prod))
-                    if pd_ is None:
-                        pd_ = 0
-                    d = max(d, pd_ + 1)
-            depth[id(n)] = d
-
-        max_d = max(depth.values(), default=-1)
-        layers: list[list[FAONode]] = [[] for _ in range(max_d + 1)]
-        for n in nodes:
-            layers[depth[id(n)]].append(n)
-        return layers
 
     # ------------------------------------------------------------------
     # Codegen for one node
@@ -858,396 +782,28 @@ class CodeGenerator:
         return plan_node, code
 
     # ------------------------------------------------------------------
-    # Execute one node with diagnosis-driven recovery
+    # Entry point for the executor (bounded by ``max_concurrent_generations``)
     # ------------------------------------------------------------------
 
-    def _get_error_handler(self) -> "ExecutionErrorHandler":
-        """Lazily build (and cache) an execution error handler."""
-        with self._handler_lock:
-            cached = self._layered_error_handler
-            if cached is not None:
-                return cached
-            # Lazy import: circular via ``kathdb.executor.__init__``.
-            from ..error_handler import ExecutionErrorHandler
-
-            handler = ExecutionErrorHandler(
-                diagnosis_llm=self.diagnosis_llm,
-                regenerate_fn=self._regenerate_node,
-                fn_manager=self._fn_manager,
-                max_retries=self.max_retries,
-            )
-            self._layered_error_handler = handler
-            return handler
-
-    def _lease_worker(self, current: WorkerClient | None) -> WorkerClient:
-        """Worker for the next attempt: keep the leased one, or replace it if a prior
-        attempt killed it. A manager without ``acquire`` is re-asked per attempt."""
-        mgr = self._worker_manager
-        if mgr is None:
-            if self._worker is None:
-                raise RuntimeError(
-                    "CodeGenerator has no worker; pass worker= or worker_manager= "
-                    "to run()"
-                )
-            return self._worker
-        if hasattr(mgr, "acquire"):
-            if current is None:
-                return mgr.acquire()
-            return current if current.is_alive() else mgr.replace(current)
-        return mgr.get_worker()
-
-    def _release_worker(self, worker: WorkerClient | None) -> None:
-        mgr = self._worker_manager
-        if worker is not None and mgr is not None and hasattr(mgr, "release"):
-            mgr.release(worker)
-
-    @staticmethod
-    def _is_infra_error(exc: Exception, error_str: str) -> bool:
-        """Infrastructure failure (install, timeout, dead channel): retry the same code."""
-        if isinstance(exc, KathDBWorkerInstallError):
-            return True
-        if isinstance(exc, (EOFError, BrokenPipeError, OSError)):
-            return True
-        if isinstance(exc, KathDBWorkerExecuteError) and "worker timed out after" in (
-            error_str or ""
-        ):
-            return True
-        return False
-
-    def _execute_with_regen(
-        self,
-        plan_node: FAOExecutableNode,
-        exec_ctx: dict[str, Any],
-        *,
-        layer_idx: int,
-    ) -> FAOExecutableNode:
-        """Execute *plan_node*, recovering on worker errors via the error handler.
-
-        Holds one worker lease for all attempts; a poisoned worker is swapped for
-        a fresh one before the next attempt.
-        """
-        max_attempts = self.max_retries + 1
-        handler: "ExecutionErrorHandler | None" = None
-        op_name = plan_node.op
-        worker: WorkerClient | None = None
-        try:
-            for attempt in range(max_attempts):
-                attempt_no = attempt + 1
-                worker = self._lease_worker(worker)
-                plan_node, done = self._attempt_or_regen(
-                    plan_node, exec_ctx, worker, attempt_no, max_attempts, layer_idx
-                )
-                if done:
-                    return plan_node
-        finally:
-            self._release_worker(worker)
-        return plan_node  # pragma: no cover
-
-    def _attempt_or_regen(
-        self,
-        plan_node: FAOExecutableNode,
-        exec_ctx: dict[str, Any],
-        worker: WorkerClient,
-        attempt_no: int,
-        max_attempts: int,
-        layer_idx: int,
-    ) -> tuple[FAOExecutableNode, bool]:
-        """One execution attempt; on failure diagnose + regenerate (or retry as-is).
-
-        Returns ``(node for the next attempt, done)``; ``done`` is True on success.
-        """
-        handler: "ExecutionErrorHandler | None" = None
-        op_name = plan_node.op
-        if True:
-            exec_t0 = time.time()
-            try:
-                plan_node.execute(exec_ctx, profile=True, worker=worker)
-                exec_dt = time.time() - exec_t0
-
-                for out_name in plan_node.outputs or []:
-                    df = exec_ctx.get(out_name)
-                    if isinstance(df, pd.DataFrame):
-                        logger.info(
-                            "[exec] op=%s layer=%d attempt=%d output=%s "
-                            "shape=%dx%d cols=%s",
-                            op_name,
-                            layer_idx,
-                            attempt_no,
-                            out_name,
-                            df.shape[0],
-                            df.shape[1],
-                            list(df.columns),
-                        )
-                logger.info(
-                    "[exec] op=%s layer=%d attempt=%d SUCCESS in %.3fs",
-                    op_name,
-                    layer_idx,
-                    attempt_no,
-                    exec_dt,
-                )
-                return plan_node, True
-            except (
-                KathDBWorkerInstallError,
-                KathDBWorkerLoadError,
-                KathDBWorkerExecuteError,
-                KathDBWorkerError,
-                FAOExecutionError,
-                # Dead worker / pipe: retried on a fresh worker.
-                EOFError,
-                BrokenPipeError,
-                OSError,
-            ) as exc:
-                exec_dt = time.time() - exec_t0
-                error_str = getattr(exc, "underlying_error", str(exc))
-                logger.warning(
-                    "[exec] op=%s layer=%d attempt=%d/%d FAILED in %.3fs: %s: %s",
-                    op_name,
-                    layer_idx,
-                    attempt_no,
-                    max_attempts,
-                    exec_dt,
-                    type(exc).__name__,
-                    error_str[:200],
-                )
-                if attempt_no >= max_attempts:
-                    raise
-
-                for out in plan_node.outputs:
-                    exec_ctx.pop(out, None)
-
-                # Infra failure: retry the same code, skip diagnosis.
-                if self._is_infra_error(exc, error_str):
-                    logger.warning(
-                        "[exec] op=%s layer=%d attempt=%d infra error (%s); "
-                        "retrying same code on a fresh worker",
-                        op_name,
-                        layer_idx,
-                        attempt_no,
-                        type(exc).__name__,
-                    )
-                    return plan_node, False
-
-                if handler is None:
-                    handler = self._get_error_handler()
-
-                regen_t0 = time.time()
-                try:
-                    fixed_node = handler.handle(
-                        plan_node,
-                        error_str,
-                        exec_ctx,
-                        worker=worker,
-                        config=self._config,
-                    )
-                except Exception as regen_exc:
-                    logger.error(
-                        "[codegen_retry] op=%s layer=%d attempt=%d "
-                        "FAILED in %.3fs: %s",
-                        op_name,
-                        layer_idx,
-                        attempt_no + 1,
-                        time.time() - regen_t0,
-                        str(regen_exc)[:500],
-                    )
-                    raise
-                regen_dt = time.time() - regen_t0
-
-                if fixed_node is not plan_node:
-                    fixed_node.replace_children(plan_node.children)
-                    op_changed = "regenerated"
-                else:
-                    op_changed = "param_patched"
-                logger.info(
-                    "[codegen_retry] op=%s layer=%d attempt=%d "
-                    "%s in %.3fs (next exec attempt incoming)",
-                    op_name,
-                    layer_idx,
-                    attempt_no + 1,
-                    op_changed,
-                    regen_dt,
-                )
-                return fixed_node, False
-        return plan_node, False  # pragma: no cover
-
-    # ------------------------------------------------------------------
-    # Run: dependency-driven codegen + execution
-    # ------------------------------------------------------------------
-
-    def run(
-        self,
-        cg_in: CodegenInState,
-        *,
-        worker: WorkerClient | None = None,
-        worker_manager: WorkerManager | None = None,
-        config: RunnableConfig | None = None,
-    ) -> CodegenOutState:
-        """Code-generate and execute every operator of ``cg_in["logical_plan"]``.
-
-        Operators run as soon as their inputs are materialized, up to
-        ``worker_manager.max_workers`` at a time (a static *worker* runs sequentially).
-        The materialized outputs are stashed on the sink node's metadata.
-        """
-        if worker is None and worker_manager is None:
-            raise ValueError("CodeGenerator.run requires worker or worker_manager")
-        self._worker = worker
-        self._worker_manager = worker_manager
-        self._config = config
-        rc = cg_in["relation_context"]
-        root = cg_in["logical_plan"]
-
-        layers = self._topo_layers(root)
-        nodes: list[FAONode] = [n for layer in layers for n in layer]
-        if not nodes:
-            logger.warning("Codegen: no processable nodes; nothing to do.")
-            return CodegenOutState(  # type: ignore[typeddict-item]
-                q_in=cg_in["q_in"],
-                actions=cg_in["actions"],
-                relation_context=rc,
-                input_rel_names=cg_in["input_rel_names"],
-                input_rel=cg_in["input_rel"],
-                code_tree=root,  # type: ignore[arg-type]
-            )
-        n_slots = 1 if worker_manager is None else max(1, getattr(worker_manager, "max_workers", 1))
-        logger.info(
-            "[run] starting: %d node(s) in %d dependency level(s), up to %d in parallel",
-            len(nodes),
-            len(layers),
-            n_slots,
-        )
-
-        materialized_outputs: dict[str, pd.DataFrame] = {
-            name: df
-            for name, df in zip(cg_in["input_rel_names"], cg_in["input_rel"])
-            if isinstance(df, pd.DataFrame)
-        }
-        depth_of = {id(n): d for d, layer in enumerate(layers) for n in layer}
-        siblings_of = {
-            id(n): [(s.op, s.description) for s in layer if s is not n]
-            for layer in layers
-            for n in layer
-        }
-        # "consumer of X" (the downstream-op hint) and "producer of X" (readiness).
-        parent_action_for: dict[str, str | None] = {}
-        producer_of: dict[str, FAONode] = {}
-        for n in nodes:
-            for inp in n.inputs:
-                parent_action_for.setdefault(inp, n.description or n.op)
-            for out in n.outputs:
-                producer_of.setdefault(out, n)
-        consumed = set(parent_action_for)
-        consumer_demands_map = _build_consumer_demands_map(root)
-
-        produced_pp: dict[str, FAOExecutableNode] = {}
-        state_lock = threading.Lock()
-        remaining: list[FAONode] = list(nodes)
-        running: dict[Any, FAONode] = {}
-        last_sink: FAOExecutableNode | None = None
-
-        def is_ready(n: FAONode) -> bool:
-            return all(
-                inp in materialized_outputs
-                for inp in n.inputs
-                if inp in producer_of
-            )
-
-        t0 = time.time()
-        pool = ThreadPoolExecutor(max_workers=n_slots)
-        try:
-            while remaining or running:
-                free = n_slots - len(running)
-                ready = [n for n in remaining if is_ready(n)][: max(0, free)]
-                for n in ready:
-                    remaining.remove(n)
-                    with state_lock:
-                        snapshot = dict(materialized_outputs)
-                        deps = [produced_pp[i] for i in n.inputs if i in produced_pp]
-                    fut = pool.submit(
-                        self._run_node,
-                        n,
-                        snapshot,
-                        deps,
-                        siblings_of[id(n)],
-                        next(
-                            (parent_action_for[o] for o in n.outputs if o in parent_action_for),
-                            None,
-                        ),
-                        cg_in,
-                        consumer_demands_map,
-                        depth_of[id(n)],
-                    )
-                    running[fut] = n
-                    logger.info(
-                        "[run] dispatched %s (level %d; %d running, %d waiting)",
-                        n.op,
-                        depth_of[id(n)],
-                        len(running),
-                        len(remaining),
-                    )
-                if not running:
-                    stuck = [n.op for n in remaining]
-                    raise RuntimeError(
-                        f"Plan cannot progress: no ready operator among {stuck} "
-                        "(missing producer or cycle)"
-                    )
-                done, _ = wait(list(running), return_when=FIRST_COMPLETED)
-                for fut in done:
-                    n = running.pop(fut)
-                    plan_node, outputs = fut.result()  # re-raises a node's failure
-                    with state_lock:
-                        materialized_outputs.update(outputs)
-                        for out in plan_node.outputs:
-                            produced_pp[out] = plan_node
-                    if not any(o in consumed for o in n.outputs):
-                        last_sink = plan_node
-        except BaseException:
-            pool.shutdown(wait=False, cancel_futures=True)
-            raise
-        pool.shutdown(wait=True)
-
-        # Stash materialized outputs on the sink code-node for the executor.
-        root_pp = last_sink
-        if root_pp is not None:
-            if root_pp.metadata is None:
-                root_pp.metadata = {}
-            root_pp.metadata["_layered_materialized_outputs"] = materialized_outputs
-
-        logger.info("[run] DONE: %d node(s) in %.1fs", len(nodes), time.time() - t0)
-
-        return CodegenOutState(  # type: ignore[typeddict-item]
-            q_in=cg_in["q_in"],
-            actions=cg_in["actions"],
-            relation_context=rc,
-            input_rel_names=cg_in["input_rel_names"],
-            input_rel=cg_in["input_rel"],
-            code_tree=root_pp,  # type: ignore[arg-type]
-        )
-
-    def _run_node(
+    def generate(
         self,
         node: FAONode,
-        materialized: dict[str, pd.DataFrame],
-        deps: list[FAOExecutableNode],
+        materialized_outputs: dict[str, pd.DataFrame],
         sibling_meta: list[tuple[str, str | None]],
         parent_action: str | None,
         cg_in: CodegenInState,
         consumer_demands_map: dict[str, list[dict]],
-        depth: int,
-    ) -> tuple[FAOExecutableNode, dict[str, pd.DataFrame]]:
-        """One operator: codegen, then execution on a leased worker (runs in a
-        scheduler thread; ``materialized`` is the snapshot taken when it became ready)."""
+        layer_idx: int = -1,
+    ) -> tuple[FAOExecutableNode, str]:
+        """Generate code for *node* (see :meth:`_codegen_layered_node`), holding one
+        of the ``max_concurrent_generations`` codegen slots."""
         with self._codegen_sem:
-            plan_node, _code = self._codegen_layered_node(
+            return self._codegen_layered_node(
                 node,
-                materialized,
+                materialized_outputs,
                 sibling_meta,
                 parent_action,
                 cg_in,
                 consumer_demands_map,
-                depth,
+                layer_idx,
             )
-        if deps:
-            plan_node.replace_children(deps)
-        exec_ctx: dict[str, Any] = dict(materialized)
-        plan_node = self._execute_with_regen(plan_node, exec_ctx, layer_idx=depth)
-        outputs = {o: exec_ctx[o] for o in plan_node.outputs if o in exec_ctx}
-        return plan_node, outputs
