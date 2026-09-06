@@ -15,7 +15,7 @@ import tempfile
 from pathlib import Path
 
 # kathdb and litellm are replaced by sys.modules stubs before the candidate module
-# is imported; the fake call_text must mirror the real signature so an invented
+# is imported; the fake call_model must mirror the real signature so an invented
 # kwarg raises TypeError as it would at reuse time.
 _HARNESS = r"""
 import importlib.util, inspect, logging, sys, types
@@ -42,11 +42,12 @@ def _counted_canned(prompt):
 # canned_response-backed lambda still proves model calls happened.
 ns["canned_response"] = _counted_canned
 
-def call_text(
+def call_model(
     prompt,
     model,
-    images,
-    audios=None,
+    media=None,
+    *,
+    modality=None,
     image_detail="low",
     reasoning_effort="minimal",
     temperature=0.0,
@@ -56,12 +57,12 @@ def call_text(
 
 _pkg = types.ModuleType("kathdb"); _pkg.__path__ = []
 _common = types.ModuleType("kathdb.common"); _common.__path__ = []
-_ls = types.ModuleType("kathdb.common.litellm_sync")
-_ls.call_text = call_text
+_ls = types.ModuleType("kathdb.common.model_call")
+_ls.call_model = call_model
 _logmod = types.ModuleType("kathdb.common.logger")
 _logmod.get_logger = logging.getLogger
 _pkg.common = _common
-_common.litellm_sync = _ls
+_common.model_call = _ls
 _common.logger = _logmod
 
 class _Msg:
@@ -98,7 +99,7 @@ _litellm.completion = _fake_completion
 sys.modules.update({
     "kathdb": _pkg,
     "kathdb.common": _common,
-    "kathdb.common.litellm_sync": _ls,
+    "kathdb.common.model_call": _ls,
     "kathdb.common.logger": _logmod,
     "litellm": _litellm,
 })
@@ -109,7 +110,7 @@ spec.loader.exec_module(mod)
 fn = getattr(mod, fn_name)
 
 # Some finalizer-written smoke scripts insist on importing the fn's module as
-# `scripts.fn` or patching "scripts.fn.call_text" (unittest.mock) instead of
+# `scripts.fn` or patching "scripts.fn.call_model" (unittest.mock) instead of
 # trusting the injected fn. Alias the loaded module under those names so that
 # pattern resolves to the same already-faked module instead of failing.
 _scripts_pkg = types.ModuleType("scripts")
@@ -123,19 +124,19 @@ run(fn)
 
 code_src = open(module_path).read()
 n_calls = calls["client"] or calls["canned"]
-if ("call_text" in code_src or "litellm" in code_src) and n_calls == 0:
+if ("call_model" in code_src or "litellm" in code_src) and n_calls == 0:
     print("SMOKE FAIL: body references a model client but made ZERO model "
           "calls (a swallowed per-row exception?)")
     sys.exit(3)
 print(f"SMOKE OK: {n_calls} model calls")
 """
 
-# Must track the real call_text signature (mirrored by the harness fake).
-FAKE_CALL_TEXT_PARAMS = (
+# Must track the real call_model signature (mirrored by the harness fake).
+FAKE_CALL_MODEL_PARAMS = (
     ("prompt", None),
     ("model", None),
-    ("images", None),
-    ("audios", None),
+    ("media", None),
+    ("modality", None),
     ("image_detail", "low"),
     ("reasoning_effort", "minimal"),
     ("temperature", 0.0),

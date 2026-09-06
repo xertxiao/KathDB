@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pandas as pd
 
-from kathdb.common.litellm_sync import call_text, run_batch
+from kathdb.common.model_call import call_model, run_batch
 from kathdb.common.logger import get_logger
 from kathdb.pre_built_fn._common import (
     build_row_prompt_and_media,
@@ -71,11 +71,10 @@ def sem_map(
 
     fns = [
         (
-            lambda p=p, imgs=imgs, auds=auds: call_text(
+            lambda p=p, imgs=imgs, auds=auds: call_model(
                 p,
                 model,
-                imgs,
-                auds,
+                imgs + auds,
                 image_detail=image_detail,
                 reasoning_effort=reasoning_effort,
             )

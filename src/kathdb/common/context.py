@@ -132,7 +132,15 @@ class DBContext:
         if description is not None:
             self._set_description(table_name, description)
         elif self._llm is not None:
-            self._generate_description(table_name)
+            try:
+                self._generate_description(table_name)
+            except Exception as exc:  # noqa: BLE001 - a description is optional
+                logger.warning(
+                    "LLM description for table '%s' failed (%s); using a generic one.",
+                    table_name,
+                    exc,
+                )
+                self._set_description(table_name, f"User-provided table `{table_name}`.")
         else:
             self._set_description(table_name, f"User-provided table `{table_name}`.")
 
@@ -408,6 +416,21 @@ class DBContext:
                 f"cols=({', '.join(cols)}){tag}"
             )
         print(SEP * 60)
+
+    def drop_table(self, name: str) -> None:
+        """Drop a registered table together with its multimodal views and their metadata."""
+        views = [
+            r[0]
+            for r in self.conn.execute(
+                "SELECT view_name FROM _kdb_view_sources WHERE source_table = ?", [name]
+            ).fetchall()
+        ]
+        for n in [*views, name]:
+            self.conn.execute(f"DROP TABLE IF EXISTS {_quote_ident(n)}")
+            for meta in ("_kdb_descriptions", "_kdb_column_descriptions", "_kdb_column_modalities"):
+                self.conn.execute(f"DELETE FROM {meta} WHERE table_name = ?", [n])
+            self.conn.execute("DELETE FROM _kdb_view_sources WHERE view_name = ?", [n])
+        self.conn.execute("DELETE FROM _kdb_view_sources WHERE source_table = ?", [name])
 
     def is_view(self, name: str) -> bool:
         """Return True if *name* is an auto-expanded multimodal view."""

@@ -31,6 +31,7 @@ def test_defaults_validate():
     assert cfg.grouping_base_plan_profiling is True
     assert cfg.image_quality_low_ai_op is True
     assert cfg.num_executor_workers == 1
+    assert cfg.persist_results is False
 
 
 def test_split_model_id():
@@ -48,6 +49,26 @@ def test_make_llm_forwards_default_temperature(monkeypatch):
     llm = make_llm("openai/gpt-4o-mini")
     assert llm.kwargs["model"] == "gpt-4o-mini"
     assert llm.kwargs["temperature"] == 0.0
+    assert llm.kwargs["max_tokens"] == 16384
+
+
+def test_make_llm_omits_temperature_for_claude_5(monkeypatch):
+    monkeypatch.setitem(
+        sys.modules, "langchain_anthropic", SimpleNamespace(ChatAnthropic=_FakeChatModel)
+    )
+    assert "temperature" not in make_llm("anthropic/claude-opus-5").kwargs
+    assert "temperature" not in make_llm("anthropic/claude-sonnet-5").kwargs
+    assert make_llm("anthropic/claude-3-5-sonnet-latest").kwargs["temperature"] == 0.0
+
+
+def test_make_llm_azure_anthropic_sets_max_tokens(monkeypatch):
+    monkeypatch.setitem(
+        sys.modules, "langchain_anthropic", SimpleNamespace(ChatAnthropic=_FakeChatModel)
+    )
+    monkeypatch.setenv("AZURE_ANTHROPIC_ENDPOINT", "https://x/")
+    monkeypatch.setenv("AZURE_ANTHROPIC_API_KEY", "k")
+    llm = make_llm("azure_anthropic/claude-opus-4-7")
+    assert llm.kwargs["max_tokens"] == 16384 and llm.kwargs["base_url"] == "https://x"
 
 
 def test_planner_model_is_validated():
