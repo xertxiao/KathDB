@@ -15,8 +15,8 @@ export OPENAI_API_KEY=...        # the model the generated code calls (default: 
 ```
 
 The generated code runs in a separate conda environment ("worker"). By default
-KathDB provisions one from `requirements.txt`; pass `worker_env="<name>"` to reuse
-an existing environment.
+KathDB provisions one from `src/kathdb/worker/requirements.txt` (its name is
+`db.worker_env_name`); pass `worker_env="<name>"` to reuse an existing environment.
 
 ## Quick start
 
@@ -28,9 +28,9 @@ from kathdb.common.view_schema import Modality
 with KathDB("catalog.duckdb", human_in_the_loop=False) as db:
     df = pd.read_csv("products.csv")      # has an image_path column
     db.register_table(df, "products", column_modalities={"image_path": Modality.IMAGE})
-    result = db.query("Which products priced under 50 show a logo in their product image?")
-    print(result["result"])               # {relation_name: DataFrame}
-    print(db.last_cost().summary())       # tokens / USD per stage
+    relations = db.query("Which products priced under 50 show a logo in their product image?")
+    print(db.last_result(relations))      # the answer DataFrame (relations = every relation the plan produced)
+    print(db.last_cost().summary())       # tokens / USD / seconds per stage
     print(db.last_grouping_trace())       # what the optimizer fused
 ```
 

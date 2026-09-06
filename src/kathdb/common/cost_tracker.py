@@ -9,6 +9,8 @@ disjoint and sum to the total; ``plan_gen`` excludes ``grouping``.
 
 from __future__ import annotations
 
+import time
+
 import json
 import os
 from contextlib import contextmanager
@@ -47,6 +49,7 @@ class StageCost:
     calls: int = 0
     money_cost_usd: float = 0.0
     money_cost_known: bool = True
+    wall_time_sec: float = 0.0
     by_model: dict[str, dict[str, float]] = field(default_factory=dict)
 
     @property
@@ -86,6 +89,7 @@ class StageCost:
             "calls": self.calls,
             "money_cost_usd": round(self.money_cost_usd, 6),
             "money_cost_known": self.money_cost_known,
+            "wall_time_sec": round(self.wall_time_sec, 3),
             "by_model": {
                 k: {**v, "money_cost_usd": round(float(v["money_cost_usd"]), 6)}
                 for k, v in self.by_model.items()
@@ -145,6 +149,9 @@ class CostTracker:
             model, int(input_tokens), int(output_tokens), int(calls), float(money_cost_usd)
         )
 
+    def add_wall_time(self, stage: str, seconds: float) -> None:
+        self._bucket(stage).wall_time_sec += max(0.0, float(seconds))
+
     def totals(self) -> StageCost:
         """Grand total across all stages."""
         return self._sum(STAGES)
@@ -160,6 +167,7 @@ class CostTracker:
                 st.calls,
                 st.money_cost_usd if st.money_cost_known else None,
             )
+            agg.wall_time_sec += st.wall_time_sec
         return agg
 
     def to_dict(self) -> dict[str, Any]:
@@ -177,7 +185,7 @@ class CostTracker:
             flag = "" if st.money_cost_known else "  (USD lower-bound)"
             lines.append(
                 f"  {name:<10} in={st.input_tokens:>8}  out={st.output_tokens:>8}  "
-                f"calls={st.calls:>4}  ${st.money_cost_usd:.6f}{flag}"
+                f"calls={st.calls:>4}  ${st.money_cost_usd:.6f}  {st.wall_time_sec:>7.1f}s{flag}"
             )
         return "CostTracker:\n" + "\n".join(lines)
 
@@ -193,9 +201,11 @@ def capture_into(tracker: "CostTracker", stage: str, *, sign: int = 1):
     ``tracker[stage]`` (contextvar-based, so calls need not forward ``config``)."""
     from langchain_core.callbacks import get_usage_metadata_callback
 
+    t0 = time.perf_counter()
     with get_usage_metadata_callback() as cb:
         yield cb
     tracker.record_usage_metadata(stage, cb.usage_metadata, sign=sign)
+    tracker.add_wall_time(stage, time.perf_counter() - t0)
 
 
 def new_stage_handler():

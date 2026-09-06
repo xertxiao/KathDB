@@ -934,11 +934,10 @@ class CodeGenerator:
             for attempt in range(max_attempts):
                 attempt_no = attempt + 1
                 worker = self._lease_worker(worker)
-                plan_node = self._attempt_or_regen(
+                plan_node, done = self._attempt_or_regen(
                     plan_node, exec_ctx, worker, attempt_no, max_attempts, layer_idx
                 )
-                if plan_node is not None and getattr(plan_node, "_kathdb_done", False):
-                    del plan_node._kathdb_done
+                if done:
                     return plan_node
         finally:
             self._release_worker(worker)
@@ -952,11 +951,10 @@ class CodeGenerator:
         attempt_no: int,
         max_attempts: int,
         layer_idx: int,
-    ) -> FAOExecutableNode:
+    ) -> tuple[FAOExecutableNode, bool]:
         """One execution attempt; on failure diagnose + regenerate (or retry as-is).
 
-        Returns the node to use for the next attempt, flagged ``_kathdb_done`` when
-        the attempt succeeded.
+        Returns ``(node for the next attempt, done)``; ``done`` is True on success.
         """
         handler: "ExecutionErrorHandler | None" = None
         op_name = plan_node.op
@@ -987,8 +985,7 @@ class CodeGenerator:
                     attempt_no,
                     exec_dt,
                 )
-                plan_node._kathdb_done = True
-                return plan_node
+                return plan_node, True
             except (
                 KathDBWorkerInstallError,
                 KathDBWorkerLoadError,
@@ -1028,7 +1025,7 @@ class CodeGenerator:
                         attempt_no,
                         type(exc).__name__,
                     )
-                    return plan_node
+                    return plan_node, False
 
                 if handler is None:
                     handler = self._get_error_handler()
@@ -1069,8 +1066,8 @@ class CodeGenerator:
                     op_changed,
                     regen_dt,
                 )
-                return fixed_node
-        return plan_node  # pragma: no cover
+                return fixed_node, False
+        return plan_node, False  # pragma: no cover
 
     # ------------------------------------------------------------------
     # Run: dependency-driven codegen + execution

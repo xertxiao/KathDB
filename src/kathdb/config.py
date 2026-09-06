@@ -197,6 +197,8 @@ class KathDBConfig:
     save_function_timeout_sec: float = 180.0
 
     # -- Worker (sandboxed subprocess that runs the generated code) --
+    # Requirements installed into a newly provisioned worker env. None = the
+    # package's ``worker/requirements.txt``. Ignored when ``worker_env`` is set.
     requirements_path: str | None = None
     remove_worker_env_on_close: bool = False
     worker_connect_timeout_s: float = 180.0
