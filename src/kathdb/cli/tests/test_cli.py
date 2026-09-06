@@ -52,6 +52,12 @@ class _FakeDB:
     def inspect(self, name):
         pass
 
+    def is_view(self, name):
+        return False
+
+    def table_info(self, name):
+        return {"rows": 1, "columns": ["id"], "modalities": {k: v.value for k, v in self.tables[name].items()}}
+
     def close(self):
         self.closed = True
 
@@ -144,3 +150,47 @@ def test_unknown_command_and_exit(tmp_path):
         sh.dispatch("/nope")
     sh.dispatch("/exit")
     assert sh._running is False
+
+
+def test_load_dotenv_and_missing_env(tmp_path, monkeypatch):
+    from kathdb.cli.repl import load_dotenv, missing_env
+
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    monkeypatch.delenv("AZURE_API_KEY", raising=False)
+    env = tmp_path / ".env"
+    env.write_text("# keys\nexport ANTHROPIC_API_KEY='abc'\nAZURE_API_KEY=x\n\nbad line\n")
+    assert load_dotenv(env) == 2
+    assert missing_env("anthropic/claude-opus-5", planner=True) == []
+    assert missing_env("azure/gpt-4o-mini", planner=False) == ["AZURE_API_BASE", "AZURE_API_VERSION"]
+    assert load_dotenv(tmp_path / "nope") == 0
+
+
+def test_model_key_flag_sets_env(tmp_path, monkeypatch):
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    sh = _shell(tmp_path)
+    sh.dispatch("/model openai/gpt-4o --key sk-test --no-check")
+    import os
+
+    assert os.environ["OPENAI_API_KEY"] == "sk-test"
+    assert sh.setting("planner_model") == "openai/gpt-4o"
+
+
+def test_stage_labels():
+    from kathdb.cli.repl import stage_label
+
+    assert stage_label("=== Stage 2/3: Plan Gen ===") == "planning"
+    assert stage_label("[codegen] op=classify_x layer=1 codegen_time=1s") == "generating code for classify_x"
+    assert stage_label("[run] dispatched g_1 (level 0; 1 running, 0 waiting)") == "executing g_1"
+    assert stage_label("unrelated") is None
+
+
+def test_export_after_query(tmp_path):
+    sh = _shell(tmp_path)
+    sh.open()
+    sh.db.tables["t"] = {}
+    with pytest.raises(RuntimeError):
+        sh.dispatch("/export")
+    sh.dispatch("Which rows?")
+    out = tmp_path / "out.csv"
+    sh.dispatch(f"/export {out}")
+    assert out.read_text().splitlines() == ["id", "1", "2"]

@@ -30,5 +30,5 @@ setup(
     package_data={"kathdb": ["**/*.md", "**/*.txt", "generated_fn/.gitkeep"]},
     python_requires=">=3.10",
     install_requires=install_requires,
-    entry_points={"console_scripts": ["kathdb=kathdb.cli:main"]},
+    entry_points={"console_scripts": ["kdb=kathdb.cli:main", "kathdb=kathdb.cli:main"]},
 )

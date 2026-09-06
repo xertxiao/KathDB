@@ -6,7 +6,7 @@
     kathdb> Which products under 50 show a logo in their image?
     kathdb> /config logical_rewrite=false phy_opt=true
 
-Commands: /help /model /register-data /tables /config /cost /plan /exit
+Commands: /help /model /register-data /tables /config /cost /plan /export /exit
 """
 
 from __future__ import annotations
@@ -14,11 +14,15 @@ from __future__ import annotations
 import argparse
 import dataclasses
 import itertools
+import logging
+import os
+import re
 import shlex
 import sys
 import threading
 import time
 import typing
+import warnings
 from pathlib import Path
 from typing import Any, Callable
 
@@ -73,7 +77,7 @@ class _Spinner:
     """Braille spinner on stderr while a long call runs (off when stdin is not a tty)."""
 
     def __init__(self, label: str, style: _Style, enabled: bool) -> None:
-        self._label = label
+        self.label = label
         self._style = style
         self._enabled = enabled and sys.stderr.isatty()
         self._stop = threading.Event()
@@ -83,10 +87,10 @@ class _Spinner:
         for ch in itertools.cycle("⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"):
             if self._stop.is_set():
                 break
-            sys.stderr.write(f"\r{self._style.accent(ch)} {self._label} ")
+            sys.stderr.write(f"\r\033[K{self._style.accent(ch)} {self.label} ")
             sys.stderr.flush()
             time.sleep(0.08)
-        sys.stderr.write("\r" + " " * (len(self._label) + 4) + "\r")
+        sys.stderr.write("\r\033[K")
         sys.stderr.flush()
 
     def __enter__(self) -> "_Spinner":
@@ -161,9 +165,100 @@ def parse_register_args(tokens: list[str]) -> argparse.Namespace:
     return _register_parser().parse_args(tokens)
 
 
+_STAGE_LABELS = (
+    ("Stage 1/3", "parsing the question"),
+    ("Stage 2/3", "planning"),
+    ("[base-plan]", "profiling the plan on a sample"),
+    ("[list_rank]", "ranking groupings"),
+    ("[optimizer]", "optimizing"),
+    ("Stage 3/3", "generating code"),
+)
+
+
+def stage_label(message: str) -> str | None:
+    """Progress label for a KathDB log line, or None if the line is not a stage marker."""
+    m = re.search(r"\[codegen\] op=(\S+)", message)
+    if m:
+        return f"generating code for {m.group(1)}"
+    m = re.search(r"\[run\] dispatched (\S+)", message)
+    if m:
+        return f"executing {m.group(1)}"
+    for key, label in _STAGE_LABELS:
+        if key in message:
+            return label
+    return None
+
+
+class _Progress(logging.Handler):
+    """Feeds KathDB's stage log lines into the spinner label."""
+
+    def __init__(self, spinner: _Spinner) -> None:
+        super().__init__(logging.INFO)
+        self._spinner = spinner
+
+    def emit(self, record: logging.LogRecord) -> None:
+        label = stage_label(record.getMessage())
+        if label:
+            self._spinner.label = label
+
+
+_PLANNER_ENV = {
+    "openai": ("OPENAI_API_KEY",),
+    "anthropic": ("ANTHROPIC_API_KEY",),
+    "google": ("GOOGLE_API_KEY",),
+    "azure_anthropic": ("AZURE_ANTHROPIC_API_KEY", "AZURE_ANTHROPIC_ENDPOINT"),
+}
+_AI_OP_ENV = {
+    "openai": ("OPENAI_API_KEY",),
+    "azure": ("AZURE_API_KEY", "AZURE_API_BASE", "AZURE_API_VERSION"),
+    "anthropic": ("ANTHROPIC_API_KEY",),
+    "gemini": ("GEMINI_API_KEY",),
+    "vertex_ai": ("GOOGLE_APPLICATION_CREDENTIALS",),
+}
+
+
+def required_env(model_id: str, *, planner: bool) -> tuple[str, ...]:
+    """Environment variables a model id needs (first one is the API key)."""
+    provider = model_id.split("/", 1)[0].lower() if "/" in model_id else "openai"
+    return (_PLANNER_ENV if planner else _AI_OP_ENV).get(provider, ())
+
+
+def missing_env(model_id: str, *, planner: bool) -> list[str]:
+    return [k for k in required_env(model_id, planner=planner) if not os.environ.get(k)]
+
+
+def load_dotenv(path: str | Path = ".env") -> int:
+    """Export ``KEY=VALUE`` lines from *path*; variables already set win. Returns the count."""
+    p = Path(path)
+    if not p.is_file():
+        return 0
+    n = 0
+    for line in p.read_text().splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        key = key.strip().removeprefix("export ").strip()
+        value = value.strip().strip("'\"")
+        if key and key not in os.environ:
+            os.environ[key] = value
+            n += 1
+    return n
+
+
 # ---------------------------------------------------------------------------
 # Shell
 # ---------------------------------------------------------------------------
+
+
+def _quiet_library() -> None:
+    """Show only warnings from KathDB (the shell renders progress itself)."""
+    warnings.filterwarnings("ignore")
+    from ..common.logger import configure_logger
+
+    klog = configure_logger(level="WARNING")
+    for h in klog.handlers:
+        h.setLevel(logging.WARNING)
 
 
 class KathDBShell:
@@ -175,9 +270,13 @@ class KathDBShell:
         *,
         settings: dict[str, Any] | None = None,
         color: bool = True,
+        verbose: bool = False,
         open_fn: Callable[..., Any] | None = None,
     ) -> None:
         self.db_path = Path(db_path)
+        self.verbose = verbose
+        if not verbose:
+            _quiet_library()
         self.pending: dict[str, Any] = dict(settings or {})
         self.db: Any = None
         self.style = _Style(color and sys.stdout.isatty())
@@ -193,10 +292,12 @@ class KathDBShell:
             "/config": (self.cmd_config, "[key=value ...]  show or change any setting"),
             "/cost": (self.cmd_cost, "tokens / USD / seconds of the last query"),
             "/plan": (self.cmd_plan, "what the optimizer fused in the last query"),
+            "/export": (self.cmd_export, "[file.csv]  save the last answer"),
             "/exit": (self.cmd_exit, "quit"),
             "/quit": (self.cmd_exit, "quit"),
         }
         self._running = True
+        self.last_df: Any = None
 
     # -- output helpers -----------------------------------------------------
 
@@ -238,11 +339,14 @@ class KathDBShell:
         config = KathDBConfig(**advanced) if advanced else None
         return KathDB(db_path, config=config, **basic)
 
+    def _base_tables(self) -> list[str]:
+        return [n for n in self.db.list_tables() if not self.db.is_view(n)]
+
     # -- status line --------------------------------------------------------
 
     def status(self) -> str:
         s = self.style
-        n_tables = len(self.db.list_tables()) if self.db is not None else 0
+        n_tables = len(self._base_tables()) if self.db is not None else 0
         parts = [
             f"planner {s.key(str(self.setting('planner_model')))}",
             f"ai-op {s.key(str(self.setting('ai_op_model')))}",
@@ -262,23 +366,56 @@ class KathDBShell:
             self.say(f"  {self.style.accent(name):<24} {usage}")
 
     def cmd_model(self, args: list[str]) -> None:
-        if not args:
-            self.say(f"planner: {self.setting('planner_model')}")
-            self.say(f"ai-op:   {self.setting('ai_op_model')}")
+        api_key, check, rest = None, True, []
+        it = iter(args)
+        for tok in it:
+            if tok == "--key":
+                api_key = next(it, None)
+            elif tok == "--no-check":
+                check = False
+            else:
+                rest.append(tok)
+        if not rest:
+            for label, name in (("planner", "planner_model"), ("ai-op", "ai_op_model")):
+                model = self.setting(name)
+                miss = missing_env(model, planner=name == "planner_model")
+                note = self.style.err(f"  missing {', '.join(miss)}") if miss else self.style.ok("  ✓ credentials set")
+                self.say(f"{label + ':':<9}{model}{note}")
             return
-        if args[0] in ("ai-op", "ai_op"):
-            key, model = "ai_op_model", " ".join(args[1:])
-        elif args[0] == "planner":
-            key, model = "planner_model", " ".join(args[1:])
+        if rest[0] in ("ai-op", "ai_op"):
+            key, model = "ai_op_model", " ".join(rest[1:])
+        elif rest[0] == "planner":
+            key, model = "planner_model", " ".join(rest[1:])
         else:
-            key, model = "planner_model", " ".join(args)
+            key, model = "planner_model", " ".join(rest)
         if not model:
             raise ValueError("missing model id (provider/model)")
-        if key == "planner_model":
+        planner = key == "planner_model"
+        if planner:
             split_model_id(model)  # validates the provider
+        needed = required_env(model, planner=planner)
+        if api_key:
+            if not needed:
+                raise ValueError(f"no known credential variable for {model!r}")
+            os.environ[needed[0]] = api_key
+        miss = missing_env(model, planner=planner)
+        if miss:
+            self.say(self.style.err(f"  set {', '.join(miss)} in the environment or pass --key"))
+        elif planner and check:
+            self._ping_planner(model)
         self.apply({key: model})
         self.say(self.style.ok(f"✓ {key.replace('_', ' ')} = {model}"))
         self.say(self.style.dim(self.status()))
+
+    def _ping_planner(self, model: str) -> None:
+        from ..config import make_llm
+
+        try:
+            with _Spinner(f"checking {model}", self.style, enabled=True):
+                make_llm(model).invoke("Reply with the single word OK.")
+            self.say(self.style.ok("  ✓ model responds"))
+        except Exception as exc:  # noqa: BLE001 - report, keep the setting
+            self.say(self.style.err(f"  model check failed: {type(exc).__name__}: {str(exc)[:200]}"))
 
     def cmd_register(self, args: list[str]) -> None:
         if not args:
@@ -304,8 +441,11 @@ class KathDBShell:
             raise FileNotFoundError(path)
         db = self.open()
         if path.is_dir():
-            names = db.discover(path)
-            self.say(self.style.ok(f"✓ registered {len(names)} table(s): {', '.join(names)}"))
+            with _Spinner(f"discovering {path}", self.style, enabled=True):
+                names = db.discover(path)
+            self.say(self.style.ok(f"✓ registered {len(names)} table(s)"))
+            self._table_summary(names)
+            self.say(self.style.dim(self.status()))
             return
         name = ns.name or path.stem
         if path.suffix.lower() == ".csv":
@@ -315,19 +455,28 @@ class KathDBShell:
         else:
             raise ValueError("expected a .csv, .parquet file, or a directory")
         self.say(self.style.ok(f"✓ registered table {name}"))
+        self._table_summary([name])
         self.say(self.style.dim(self.status()))
+
+    def _table_summary(self, names: list[str]) -> None:
+        for n in names:
+            info = self.db.table_info(n)
+            mods = ", ".join(f"{c}:{m}" for c, m in info["modalities"].items())
+            cols = ", ".join(info["columns"][:8]) + (" …" if len(info["columns"]) > 8 else "")
+            self.say(f"  {self.style.key(n):<32} {info['rows']:>7} rows   {cols}")
+            if mods:
+                self.say(self.style.dim(f"  {'':<32} media: {mods}"))
 
     def cmd_tables(self, args: list[str]) -> None:
         db = self.open()
         if args:
             db.inspect(args[0])
             return
-        names = db.list_tables()
+        names = self._base_tables()
         if not names:
             self.say(self.style.dim("no tables yet; /register-data <file or dir>"))
             return
-        for n in names:
-            self.say(f"  {n}")
+        self._table_summary(names)
 
     def cmd_config(self, args: list[str]) -> None:
         if args:
@@ -370,6 +519,13 @@ class KathDBShell:
         if trace.get("short_circuit_reason"):
             self.say(self.style.dim(f"  ({trace['short_circuit_reason']})"))
 
+    def cmd_export(self, args: list[str]) -> None:
+        if self.last_df is None:
+            raise RuntimeError("nothing to export yet")
+        target = Path(args[0]) if args else Path(f"{self.db.last_result_name() or 'result'}.csv")
+        self.last_df.to_csv(target, index=False)
+        self.say(self.style.ok(f"✓ wrote {len(self.last_df)} rows to {target}"))
+
     def cmd_exit(self, args: list[str]) -> None:
         self._running = False
 
@@ -381,10 +537,22 @@ class KathDBShell:
             raise RuntimeError("no tables registered; /register-data <file or dir> first")
         spinner_on = not bool(self.setting("human_in_the_loop"))
         t0 = time.perf_counter()
-        with _Spinner("thinking", self.style, enabled=spinner_on):
-            relations = db.query(question)
+        klog = logging.getLogger("kathdb")
+        old_level = klog.level
+        spinner = _Spinner("thinking", self.style, enabled=spinner_on)
+        progress = _Progress(spinner)
+        klog.addHandler(progress)
+        if klog.level == logging.NOTSET or klog.level > logging.INFO:
+            klog.setLevel(logging.INFO)
+        try:
+            with spinner:
+                relations = db.query(question)
+        finally:
+            klog.removeHandler(progress)
+            klog.setLevel(old_level)
         wall = time.perf_counter() - t0
         result = db.last_result(relations)
+        self.last_df = result
         self.say()
         if result is None:
             self.say(self.style.dim("(no result relation)"))
@@ -466,20 +634,23 @@ class KathDBShell:
 
 
 def main(argv: list[str] | None = None) -> int:
-    p = argparse.ArgumentParser(prog="kathdb", description="Interactive KathDB shell.")
+    p = argparse.ArgumentParser(prog="kdb", description="Interactive KathDB shell.")
+    p.add_argument("--env-file", default=".env", help="KEY=VALUE file exported before start (default: ./.env)")
     p.add_argument("--db", default="kathdb.duckdb", help="catalog file (default: ./kathdb.duckdb)")
     p.add_argument("--planner-model", dest="planner_model", help="provider/model")
     p.add_argument("--ai-op-model", dest="ai_op_model", help="LiteLLM model id for the generated code")
     p.add_argument("--worker-env", dest="worker_env", help="existing conda env for the worker")
     p.add_argument("--no-color", action="store_true")
+    p.add_argument("--verbose", action="store_true", help="show KathDB's own log lines")
     p.add_argument("-c", "--command", action="append", default=[], help="run this line, then continue interactively")
     ns = p.parse_args(argv)
+    load_dotenv(ns.env_file)
     settings = {
         k: v
         for k, v in vars(ns).items()
         if k in ("planner_model", "ai_op_model", "worker_env") and v
     }
-    shell = KathDBShell(ns.db, settings=settings, color=not ns.no_color)
+    shell = KathDBShell(ns.db, settings=settings, color=not ns.no_color, verbose=ns.verbose)
     for line in ns.command:
         try:
             shell.dispatch(line)

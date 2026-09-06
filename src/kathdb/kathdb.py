@@ -357,8 +357,23 @@ class KathDB:
     def list_tables(self) -> list[str]:
         return self._ctx.list_tables()
 
+    def table_info(self, name: str) -> dict[str, Any]:
+        """``{"rows", "columns", "modalities"}`` for one table (modalities: column -> kind)."""
+        from .common.context import _quote_ident
+
+        rows = self._ctx.execute(f"SELECT COUNT(*) FROM {_quote_ident(name)}").fetchone()[0]
+        return {
+            "rows": int(rows),
+            "columns": self._ctx.get_columns(name),
+            "modalities": self._ctx._get_table_column_modalities(name),
+        }
+
     def has_table(self, name: str) -> bool:
         return self._ctx.has_table(name)
+
+    def is_view(self, name: str) -> bool:
+        """True for the auto-populated multimodal views (as opposed to registered tables)."""
+        return self._ctx.is_view(name)
 
     def load_table(self, name: str, *, n: int | None = None) -> DataFrame:
         return self._ctx.load_table(name, n=n)

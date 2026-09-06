@@ -149,10 +149,18 @@ class AutoDiscovery:
     # ------------------------------------------------------------------
 
     def _plan(self, root: Path, *, recursive: bool) -> list[DiscoveredTable]:
-        """Build the full registration plan for *root*."""
+        """Build the full registration plan for *root*.
+
+        Tabular files first; media files that a tabular column already points at are
+        not turned into a second, media-only table.
+        """
         plan: list[DiscoveredTable] = []
-        for directory in self._iter_dirs(root, recursive=recursive):
-            self._plan_directory(directory, plan)
+        referenced: set[Path] = set()
+        dirs = list(self._iter_dirs(root, recursive=recursive))
+        for directory in dirs:
+            self._plan_tabular_in(directory, plan, referenced)
+        for directory in dirs:
+            self._plan_media_in(directory, plan, referenced)
         return plan
 
     def _iter_dirs(self, root: Path, *, recursive: bool) -> Iterable[Path]:
@@ -164,26 +172,40 @@ class AutoDiscovery:
             if child.is_dir():
                 yield child
 
-    def _plan_directory(self, directory: Path, plan: list[DiscoveredTable]) -> None:
-        """Add tabular and media tables for the *direct* children of *directory*."""
+    @staticmethod
+    def _entries(directory: Path) -> list[Path]:
         try:
-            entries = sorted(directory.iterdir())
+            return sorted(directory.iterdir())
         except PermissionError:
             logger.warning("Skipping unreadable directory: %s", directory)
-            return
+            return []
 
-        media_groups: dict[Modality, list[Path]] = {}
-        for entry in entries:
-            if not entry.is_file():
+    def _plan_tabular_in(
+        self, directory: Path, plan: list[DiscoveredTable], referenced: set[Path]
+    ) -> None:
+        """Plan the tabular files directly under *directory*; collect the media they reference."""
+        for entry in self._entries(directory):
+            if not entry.is_file() or entry.suffix.lower() not in TABULAR_EXTENSIONS:
                 continue
-            ext = entry.suffix.lower()
-            if ext in TABULAR_EXTENSIONS:
-                tabular = self._plan_tabular(entry)
-                if tabular is not None:
-                    plan.append(tabular)
+            tabular = self._plan_tabular(entry)
+            if tabular is None:
+                continue
+            plan.append(tabular)
+            for col in tabular.column_modalities:
+                for value in tabular.df[col].dropna().unique():
+                    path = Path(str(value))
+                    referenced.add((path if path.is_absolute() else entry.parent / path).resolve())
+
+    def _plan_media_in(
+        self, directory: Path, plan: list[DiscoveredTable], referenced: set[Path]
+    ) -> None:
+        """Plan media-only tables for loose media files directly under *directory*."""
+        media_groups: dict[Modality, list[Path]] = {}
+        for entry in self._entries(directory):
+            if not entry.is_file() or entry.suffix.lower() in TABULAR_EXTENSIONS:
                 continue
             modality = _modality_for_file(entry)
-            if modality is None:
+            if modality is None or entry.resolve() in referenced:
                 continue
             media_groups.setdefault(modality, []).append(entry)
 
