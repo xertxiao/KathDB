@@ -1,23 +1,31 @@
-"""Query executor: per-operator codegen + execution via :class:`CodeGenerator`,
-then the function-save and table-persistence steps."""
+"""Query executor: schedules a logical plan's operators by data dependency, code-
+generates each with :class:`~kathdb.executor.codegen.CodeGenerator`, runs it on a
+leased worker (diagnosing + regenerating on failure), then offers function saves."""
 
 from __future__ import annotations
 
+import threading
+import time
+from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
 from typing import Any
 
-from langchain_core.language_models import BaseChatModel
-from langchain_core.runnables.config import RunnableConfig
-from pydantic import BaseModel, Field
-
 import pandas as pd
+from langchain_core.runnables.config import RunnableConfig
 
-from ..common.function_finalizer import finalize_with_llm
 from ..common.function_manager import FunctionManager
 from ..common.logger import get_logger
-from ..common.utils import invoke_structured_with_retry, sample_dataframe
 from ..executor.codegen import CodeGenerator, CodegenInState
-from ..executor.codegen.codegen_tree import FAOExecutableNode, walk_nodes
-from ..worker import WorkerClient, WorkerManager
+from ..executor.codegen.codegen import _build_consumer_demands_map
+from ..executor.codegen.codegen_tree import FAOExecutionError, FAOExecutableNode, walk_nodes
+from ..plan_gen.plan_node import FAONode, topo_layers
+from ..worker import (
+    KathDBWorkerError,
+    KathDBWorkerExecuteError,
+    KathDBWorkerInstallError,
+    KathDBWorkerLoadError,
+    WorkerClient,
+    WorkerManager,
+)
 from .error_handler import ExecutionErrorHandler
 
 logger = get_logger(__name__)
@@ -51,9 +59,401 @@ class Executor:
         # Code tree of the last run(); drives the post-run save walk.
         self._last_code_tree: FAOExecutableNode | None = None
 
+        # Set by run().
+        self._worker: WorkerClient | None = None
+        self._worker_manager: WorkerManager | None = None
+        # Error handler, built lazily on first failure.
+        self._error_handler: ExecutionErrorHandler | None = None
+        self._handler_lock = threading.Lock()
+
+    # ------------------------------------------------------------------
+    # Run: dependency-driven codegen + execution
+    # ------------------------------------------------------------------
+
+    def run(
+        self,
+        cg_in: CodegenInState,
+        *,
+        worker: WorkerClient | None = None,
+        worker_manager: WorkerManager | None = None,
+        config: RunnableConfig | None = None,
+    ) -> dict[str, Any]:
+        """Code-generate and execute every operator of ``cg_in["logical_plan"]``;
+        return the execution context (input relations plus every materialized output).
+
+        Operators run as soon as their inputs are materialized, up to
+        ``worker_manager.max_workers`` at a time; a static *worker* runs sequentially.
+        Prefer *worker_manager*: poisoned workers are replaced between attempts.
+        """
+        if worker is None and worker_manager is None:
+            raise ValueError("Executor.run requires worker or worker_manager")
+        self._worker = worker
+        self._worker_manager = worker_manager
+        self._code_gen.config = config
+        root = cg_in["logical_plan"]
+
+        materialized_outputs: dict[str, pd.DataFrame] = {
+            name: df
+            for name, df in zip(cg_in["input_rel_names"], cg_in["input_rel"])
+            if isinstance(df, pd.DataFrame)
+        }
+        result_ctx: dict[str, Any] = {
+            name: df for name, df in zip(cg_in["input_rel_names"], cg_in["input_rel"])
+        }
+
+        layers = topo_layers(root)
+        nodes: list[FAONode] = [n for layer in layers for n in layer]
+        if not nodes:
+            logger.warning("Executor: no processable nodes; nothing to do.")
+            self._last_code_tree = None
+            return result_ctx
+        n_slots = 1 if worker_manager is None else max(1, getattr(worker_manager, "max_workers", 1))
+        logger.info(
+            "[run] starting: %d node(s) in %d dependency level(s), up to %d in parallel",
+            len(nodes),
+            len(layers),
+            n_slots,
+        )
+
+        depth_of = {id(n): d for d, layer in enumerate(layers) for n in layer}
+        siblings_of = {
+            id(n): [(s.op, s.description) for s in layer if s is not n]
+            for layer in layers
+            for n in layer
+        }
+        # "consumer of X" (the downstream-op hint) and "producer of X" (readiness).
+        parent_action_for: dict[str, str | None] = {}
+        producer_of: dict[str, FAONode] = {}
+        for n in nodes:
+            for inp in n.inputs:
+                parent_action_for.setdefault(inp, n.description or n.op)
+            for out in n.outputs:
+                producer_of.setdefault(out, n)
+        consumed = set(parent_action_for)
+        consumer_demands_map = _build_consumer_demands_map(root)
+
+        produced_pp: dict[str, FAOExecutableNode] = {}
+        state_lock = threading.Lock()
+        remaining: list[FAONode] = list(nodes)
+        running: dict[Any, FAONode] = {}
+        last_sink: FAOExecutableNode | None = None
+
+        def is_ready(n: FAONode) -> bool:
+            return all(
+                inp in materialized_outputs
+                for inp in n.inputs
+                if inp in producer_of
+            )
+
+        t0 = time.time()
+        pool = ThreadPoolExecutor(max_workers=n_slots)
+        try:
+            while remaining or running:
+                free = n_slots - len(running)
+                ready = [n for n in remaining if is_ready(n)][: max(0, free)]
+                for n in ready:
+                    remaining.remove(n)
+                    with state_lock:
+                        snapshot = dict(materialized_outputs)
+                        deps = [produced_pp[i] for i in n.inputs if i in produced_pp]
+                    fut = pool.submit(
+                        self._run_node,
+                        n,
+                        snapshot,
+                        deps,
+                        siblings_of[id(n)],
+                        next(
+                            (parent_action_for[o] for o in n.outputs if o in parent_action_for),
+                            None,
+                        ),
+                        cg_in,
+                        consumer_demands_map,
+                        depth_of[id(n)],
+                    )
+                    running[fut] = n
+                    logger.info(
+                        "[run] dispatched %s (level %d; %d running, %d waiting)",
+                        n.op,
+                        depth_of[id(n)],
+                        len(running),
+                        len(remaining),
+                    )
+                if not running:
+                    stuck = [n.op for n in remaining]
+                    raise RuntimeError(
+                        f"Plan cannot progress: no ready operator among {stuck} "
+                        "(missing producer or cycle)"
+                    )
+                done, _ = wait(list(running), return_when=FIRST_COMPLETED)
+                for fut in done:
+                    n = running.pop(fut)
+                    plan_node, outputs = fut.result()  # re-raises a node's failure
+                    with state_lock:
+                        materialized_outputs.update(outputs)
+                        for out in plan_node.outputs:
+                            produced_pp[out] = plan_node
+                    if not any(o in consumed for o in n.outputs):
+                        last_sink = plan_node
+        except BaseException:
+            pool.shutdown(wait=False, cancel_futures=True)
+            raise
+        pool.shutdown(wait=True)
+
+        logger.info("[run] DONE: %d node(s) in %.1fs", len(nodes), time.time() - t0)
+        self._last_code_tree = last_sink
+        result_ctx.update(materialized_outputs)
+        logger.info(
+            "Executor: codegen+exec finished; result_ctx has %d table(s)", len(result_ctx)
+        )
+        return result_ctx
+
+    def _run_node(
+        self,
+        node: FAONode,
+        materialized: dict[str, pd.DataFrame],
+        deps: list[FAOExecutableNode],
+        sibling_meta: list[tuple[str, str | None]],
+        parent_action: str | None,
+        cg_in: CodegenInState,
+        consumer_demands_map: dict[str, list[dict]],
+        depth: int,
+    ) -> tuple[FAOExecutableNode, dict[str, pd.DataFrame]]:
+        """One operator: codegen, then execution on a leased worker (runs in a
+        scheduler thread; ``materialized`` is the snapshot taken when it became ready)."""
+        plan_node, _code = self._code_gen.generate(
+            node,
+            materialized,
+            sibling_meta,
+            parent_action,
+            cg_in,
+            consumer_demands_map,
+            depth,
+        )
+        if deps:
+            plan_node.replace_children(deps)
+        exec_ctx: dict[str, Any] = dict(materialized)
+        plan_node = self._execute_with_regen(plan_node, exec_ctx, layer_idx=depth)
+        outputs = {o: exec_ctx[o] for o in plan_node.outputs if o in exec_ctx}
+        return plan_node, outputs
+
+    # ------------------------------------------------------------------
+    # Execute one node with diagnosis-driven recovery
+    # ------------------------------------------------------------------
+
+    def _get_error_handler(self) -> ExecutionErrorHandler:
+        """Lazily build (and cache) an execution error handler."""
+        with self._handler_lock:
+            if self._error_handler is None:
+                self._error_handler = ExecutionErrorHandler(
+                    diagnosis_llm=self._code_gen.diagnosis_llm,
+                    regenerate_fn=self._code_gen._regenerate_node,
+                    fn_manager=self._fn_manager,
+                    max_retries=self._code_gen.max_retries,
+                )
+            return self._error_handler
+
+    def _lease_worker(self, current: WorkerClient | None) -> WorkerClient:
+        """Worker for the next attempt: keep the leased one, or replace it if a prior
+        attempt killed it. A manager without ``acquire`` is re-asked per attempt."""
+        mgr = self._worker_manager
+        if mgr is None:
+            if self._worker is None:
+                raise RuntimeError(
+                    "Executor has no worker; pass worker= or worker_manager= to run()"
+                )
+            return self._worker
+        if hasattr(mgr, "acquire"):
+            if current is None:
+                return mgr.acquire()
+            return current if current.is_alive() else mgr.replace(current)
+        return mgr.get_worker()
+
+    def _release_worker(self, worker: WorkerClient | None) -> None:
+        mgr = self._worker_manager
+        if worker is not None and mgr is not None and hasattr(mgr, "release"):
+            mgr.release(worker)
+
+    @staticmethod
+    def _is_infra_error(exc: Exception, error_str: str) -> bool:
+        """Infrastructure failure (install, timeout, dead channel): retry the same code."""
+        if isinstance(exc, KathDBWorkerInstallError):
+            return True
+        if isinstance(exc, (EOFError, BrokenPipeError, OSError)):
+            return True
+        if isinstance(exc, KathDBWorkerExecuteError) and "worker timed out after" in (
+            error_str or ""
+        ):
+            return True
+        return False
+
+    def _execute_with_regen(
+        self,
+        plan_node: FAOExecutableNode,
+        exec_ctx: dict[str, Any],
+        *,
+        layer_idx: int,
+    ) -> FAOExecutableNode:
+        """Execute *plan_node*, recovering on worker errors via the error handler.
+
+        Holds one worker lease for all attempts; a poisoned worker is swapped for
+        a fresh one before the next attempt.
+        """
+        max_attempts = self._code_gen.max_retries + 1
+        worker: WorkerClient | None = None
+        try:
+            for attempt in range(max_attempts):
+                attempt_no = attempt + 1
+                worker = self._lease_worker(worker)
+                plan_node, done = self._attempt_or_regen(
+                    plan_node, exec_ctx, worker, attempt_no, max_attempts, layer_idx
+                )
+                if done:
+                    return plan_node
+        finally:
+            self._release_worker(worker)
+        return plan_node  # pragma: no cover
+
+    def _attempt_or_regen(
+        self,
+        plan_node: FAOExecutableNode,
+        exec_ctx: dict[str, Any],
+        worker: WorkerClient,
+        attempt_no: int,
+        max_attempts: int,
+        layer_idx: int,
+    ) -> tuple[FAOExecutableNode, bool]:
+        """One execution attempt; on failure diagnose + regenerate (or retry as-is).
+
+        Returns ``(node for the next attempt, done)``; ``done`` is True on success.
+        """
+        op_name = plan_node.op
+        exec_t0 = time.time()
+        try:
+            plan_node.execute(exec_ctx, profile=True, worker=worker)
+            exec_dt = time.time() - exec_t0
+
+            for out_name in plan_node.outputs or []:
+                df = exec_ctx.get(out_name)
+                if isinstance(df, pd.DataFrame):
+                    logger.info(
+                        "[exec] op=%s layer=%d attempt=%d output=%s "
+                        "shape=%dx%d cols=%s",
+                        op_name,
+                        layer_idx,
+                        attempt_no,
+                        out_name,
+                        df.shape[0],
+                        df.shape[1],
+                        list(df.columns),
+                    )
+            logger.info(
+                "[exec] op=%s layer=%d attempt=%d SUCCESS in %.3fs",
+                op_name,
+                layer_idx,
+                attempt_no,
+                exec_dt,
+            )
+            return plan_node, True
+        except (
+            KathDBWorkerInstallError,
+            KathDBWorkerLoadError,
+            KathDBWorkerExecuteError,
+            KathDBWorkerError,
+            FAOExecutionError,
+            # Dead worker / pipe: retried on a fresh worker.
+            EOFError,
+            BrokenPipeError,
+            OSError,
+        ) as exc:
+            exec_dt = time.time() - exec_t0
+            error_str = getattr(exc, "underlying_error", str(exc))
+            logger.warning(
+                "[exec] op=%s layer=%d attempt=%d/%d FAILED in %.3fs: %s: %s",
+                op_name,
+                layer_idx,
+                attempt_no,
+                max_attempts,
+                exec_dt,
+                type(exc).__name__,
+                error_str[:200],
+            )
+            if attempt_no >= max_attempts:
+                raise
+
+            for out in plan_node.outputs:
+                exec_ctx.pop(out, None)
+
+            # Infra failure: retry the same code, skip diagnosis.
+            if self._is_infra_error(exc, error_str):
+                logger.warning(
+                    "[exec] op=%s layer=%d attempt=%d infra error (%s); "
+                    "retrying same code on a fresh worker",
+                    op_name,
+                    layer_idx,
+                    attempt_no,
+                    type(exc).__name__,
+                )
+                return plan_node, False
+
+            handler = self._get_error_handler()
+            regen_t0 = time.time()
+            try:
+                fixed_node = handler.handle(
+                    plan_node,
+                    error_str,
+                    exec_ctx,
+                    worker=worker,
+                    config=self._code_gen.config,
+                )
+            except Exception as regen_exc:
+                logger.error(
+                    "[codegen_retry] op=%s layer=%d attempt=%d "
+                    "FAILED in %.3fs: %s",
+                    op_name,
+                    layer_idx,
+                    attempt_no + 1,
+                    time.time() - regen_t0,
+                    str(regen_exc)[:500],
+                )
+                raise
+            regen_dt = time.time() - regen_t0
+
+            if fixed_node is not plan_node:
+                fixed_node.replace_children(plan_node.children)
+                op_changed = "regenerated"
+            else:
+                op_changed = "param_patched"
+            logger.info(
+                "[codegen_retry] op=%s layer=%d attempt=%d "
+                "%s in %.3fs (next exec attempt incoming)",
+                op_name,
+                layer_idx,
+                attempt_no + 1,
+                op_changed,
+                regen_dt,
+            )
+            return fixed_node, False
+
     # ------------------------------------------------------------------
     # Function save logic
     # ------------------------------------------------------------------
+
+    def walk_and_offer_saves(self, plan: FAOExecutableNode) -> None:
+        """Record library-function usage and offer a save for each unique node (call after the query is done)."""
+        self._fn_manager.reconcile_records()
+        seen: set[int] = set()
+        save_offers = 0
+        for node in walk_nodes(plan):
+            nid = id(node)
+            if nid in seen:
+                continue
+            seen.add(nid)
+            if not node.outputs or not getattr(node, "function", None):
+                continue
+            self._record_function_usage(node)
+            self._offer_function_save(node)
+            save_offers += 1
+        logger.info("Executor: offered function-save for %d node(s)", save_offers)
 
     def _record_function_usage(self, node: FAOExecutableNode) -> None:
         """Record usage of any reused functions after successful execution."""
@@ -125,9 +525,7 @@ class Executor:
 
     def _launch_background_save(self, save_info: dict) -> None:
         """Run the finalize-and-save step in a daemon thread."""
-        import threading as _threading
-
-        t = _threading.Thread(
+        t = threading.Thread(
             target=self._background_save_worker,
             args=(save_info,),
             daemon=True,
@@ -138,6 +536,10 @@ class Executor:
     def _background_save_worker(self, save_info: dict) -> None:
         """Finalize the code with the LLM (canonical name, typed params, CONTRACT),
         smoke-test it, and write it to ``generated_fn/``."""
+        # The finalizer / smoke harness are only needed when a save is accepted.
+        from ..common.fn_smoke import run_smoke
+        from ..common.function_finalizer import finalize_with_llm
+
         fn_name = save_info["fn_name"]
         code = save_info["code"]
 
@@ -157,8 +559,6 @@ class Executor:
             existing_names=existing_names,
         )
         if record.status == "success":
-            from kathdb.common.fn_smoke import run_smoke
-
             smoke_ok, smoke_detail = run_smoke(
                 code_out, canonical_name, record.extra.get("smoke", "")
             )
@@ -226,219 +626,3 @@ class Executor:
                     per_thread_ceiling,
                 )
         self._save_threads.clear()
-
-    # ------------------------------------------------------------------
-    # Layered codegen + execution
-    # ------------------------------------------------------------------
-
-    def run(
-        self,
-        cg_in: CodegenInState,
-        *,
-        worker: WorkerClient | None = None,
-        worker_manager: WorkerManager | None = None,
-        config: RunnableConfig | None = None,
-    ) -> dict[str, Any]:
-        """Code-generate and execute ``cg_in["logical_plan"]``; return the execution context.
-
-        The context holds the input relations plus every materialized output.
-        Prefer *worker_manager* (parallel execution, poisoned workers replaced);
-        a static *worker* runs sequentially.
-        """
-        cg_out = self._code_gen.run(
-            cg_in, worker=worker, worker_manager=worker_manager, config=config
-        )
-        root_node: FAOExecutableNode | None = cg_out.get("code_tree")  # type: ignore[arg-type]
-        self._last_code_tree = root_node
-
-        result_ctx: dict[str, Any] = {
-            name: df for name, df in zip(cg_in["input_rel_names"], cg_in["input_rel"])
-        }
-        if root_node is not None and root_node.metadata:
-            materialized = root_node.metadata.pop("_layered_materialized_outputs", None)
-            if materialized:
-                result_ctx.update(materialized)
-        logger.info(
-            "Executor: layered codegen+exec finished; result_ctx has %d table(s)",
-            len(result_ctx),
-        )
-        return result_ctx
-
-    def walk_and_offer_saves(self, plan: FAOExecutableNode) -> None:
-        """Record library-function usage and offer a save for each unique node (call after the query is done)."""
-        self._fn_manager.reconcile_records()
-        seen: set[int] = set()
-        save_offers = 0
-        for node in walk_nodes(plan):
-            nid = id(node)
-            if nid in seen:
-                continue
-            seen.add(nid)
-            if not node.outputs or not getattr(node, "function", None):
-                continue
-            self._record_function_usage(node)
-            self._offer_function_save(node)
-            save_offers += 1
-        logger.info("Executor: offered function-save for %d node(s)", save_offers)
-
-
-class _TablePersistenceReason(BaseModel):
-    """Per-table reasoning for persistence."""
-
-    table_name: str = Field(description="Name of the candidate table.")
-    reason: str = Field(
-        description="Why this table is worth persisting for future queries."
-    )
-
-
-class _PersistenceDecisionResponse(BaseModel):
-    """LLM response for deciding which tables to persist."""
-
-    tables_to_persist: list[_TablePersistenceReason] = Field(
-        description=(
-            "Tables worth persisting, each with a reason explaining future utility."
-        )
-    )
-    reasoning: str = Field(
-        description="Brief overall explanation of why these tables were selected."
-    )
-
-
-def decide_persistence(
-    llm: BaseChatModel,
-    *,
-    nl_query: str,
-    plan: FAOExecutableNode,
-    result_ctx: dict[str, Any],
-    input_rel_names: list[str],
-    sample_rows: int = 5,
-    skip_user_review: bool = False,
-) -> list[str]:
-    """Ask the LLM which result tables (not inputs) are worth persisting; the user
-    approves each unless ``skip_user_review``. Returns the approved table names;
-    returns ``[]`` when the LLM call fails."""
-    new_keys = [
-        k
-        for k in result_ctx
-        if k not in set(input_rel_names) and isinstance(result_ctx[k], pd.DataFrame)
-    ]
-    if not new_keys:
-        return []
-
-    table_summaries: list[str] = []
-    table_info: dict[str, dict[str, Any]] = {}
-    for name in new_keys:
-        df = result_ctx[name]
-        cols = ", ".join(f"{c} ({df[c].dtype})" for c in df.columns)
-        sample = sample_dataframe(df, sample_rows)
-        sample_str = sample.to_string(index=False, max_colwidth=60)
-        table_summaries.append(
-            f"Table: {name}\n"
-            f"  Columns: {cols}\n"
-            f"  Rows: {len(df)}\n"
-            f"  Sample:\n{sample_str}"
-        )
-        table_info[name] = {
-            "columns": cols,
-            "row_count": len(df),
-            "sample_str": sample_str,
-        }
-
-    fn_summaries: list[str] = []
-    for node in walk_nodes(plan):
-        fn = node.function
-        fn_summaries.append(
-            f"- {node.op}: {fn.name}"
-            + (f" -- {fn.description}" if fn.description else "")
-        )
-
-    prompt = (
-        "## System\n"
-        "You are a database assistant deciding which intermediate/final tables "
-        "from a query execution should be persisted to DuckDB for potential "
-        "future reuse by similar workloads.\n\n"
-        "## Original Query\n"
-        f"{nl_query}\n\n"
-        "## Functions Used\n"
-        + "\n".join(fn_summaries)
-        + "\n\n## Candidate Tables\n"
-        + "\n\n".join(table_summaries)
-        + "\n\n## Instructions\n"
-        "Select only tables that would be useful for future similar queries. "
-        "Do NOT persist tables that are trivially re-derivable or only relevant "
-        "to this specific query. Prefer persisting tables that are expensive to "
-        "compute (e.g. LLM-generated columns, aggregations over large datasets). "
-        "For each selected table, explain why it is worth keeping."
-    )
-
-    try:
-        response = invoke_structured_with_retry(
-            prompt,
-            llm=llm,
-            schema=_PersistenceDecisionResponse,
-        )
-        valid_entries = [
-            entry
-            for entry in response.tables_to_persist
-            if entry.table_name in new_keys
-        ]
-        logger.info(
-            "Persistence decision: persist=%s, reasoning=%s",
-            [e.table_name for e in valid_entries],
-            response.reasoning,
-        )
-    except Exception:
-        # Fail closed: never persist on an LLM error.
-        logger.warning(
-            "LLM persistence decision failed; persisting NOTHING.",
-            exc_info=True,
-        )
-        return []
-
-    if not valid_entries:
-        return []
-
-    if skip_user_review:
-        return [e.table_name for e in valid_entries]
-
-    # Present each table to the user for approval
-    approved: list[str] = []
-    accept_all = False
-
-    logger.interact("\n" + "=" * 60 + "\n  TABLE PERSISTENCE REVIEW\n" + "=" * 60)
-
-    for entry in valid_entries:
-        name = entry.table_name
-        info = table_info.get(name, {})
-
-        logger.interact(
-            "\n"
-            + "-" * 60
-            + f"\n  Table: {name}\n"
-            + f"  Columns: {info.get('columns', '(unknown)')}\n"
-            + f"  Rows: {info.get('row_count', '?')}\n"
-            + f"\n  Reason to keep: {entry.reason}\n"
-            + f"\n  Sample:\n{info.get('sample_str', '(no sample)')}\n"
-            + "-" * 60
-        )
-
-        if accept_all:
-            approved.append(name)
-            logger.info("Auto-accepted table '%s' (accept all).", name)
-            continue
-
-        response_text = input(
-            "\nPersist this table? "
-            "(type 'yes' to persist, 'accept all' to persist remaining, "
-            "or anything else to skip): "
-        ).strip()
-        logger.info("Table persistence feedback for '%s': %s", name, response_text)
-
-        lower = response_text.lower()
-        if lower in ("yes", "y"):
-            approved.append(name)
-        elif lower in ("accept all", "accept_all"):
-            accept_all = True
-            approved.append(name)
-
-    return approved

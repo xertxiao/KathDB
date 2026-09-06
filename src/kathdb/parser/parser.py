@@ -1,20 +1,21 @@
-"""Natural-language query -> ordered list of atomic actions (the query sketch)."""
+"""Natural-language query -> ordered list of atomic actions (the query sketch).
+
+``ActionNLParser.run`` is two bounded loops: an optional clarification loop
+(model asks, user answers, query is refined) and a sketch/review loop (model
+drafts, user accepts or corrects). Both human steps are skipped in ``auto_mode``.
+"""
 
 from __future__ import annotations
 
 import contextvars
-from abc import ABC, abstractmethod
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any, Literal, TypeVar
 
 from langchain_core.language_models import BaseChatModel
-from langgraph.graph.state import StateGraph, START, END
-from langchain_core.runnables.config import RunnableConfig
 from pydantic import BaseModel
 
 
 from .action import Action
-from .parser_state_schemas import ParserState
 from .prompts import (
     format_action_query_sketch_prompt,
     format_action_query_sketch_with_functions_prompt,
@@ -40,10 +41,13 @@ T = TypeVar("T", bound=BaseModel)
 
 logger = get_logger(__name__)
 
-__all__ = ["BaseParser", "ActionNLParser", "ActionNLParserWithFunctions"]
+__all__ = ["ActionNLParser"]
 
 # Exact-match (trim + lowercase) acceptance replies during human review.
 _ACCEPT_RESPONSES = frozenset({"accept", "accepted", "ok", "okay", "lgtm", "yes", "y"})
+
+# Working-state keys that accumulate across steps; every other key is overwritten.
+_APPEND_KEYS = frozenset({"reviews_messages", "clarification_messages", "runtime_deferred"})
 
 
 def _is_acceptance(message: str | None) -> bool:
@@ -51,34 +55,26 @@ def _is_acceptance(message: str | None) -> bool:
     return bool(message) and message.strip().lower() in _ACCEPT_RESPONSES
 
 
-class BaseParser(ABC):
-    """Minimal base class for NL parsers: compile a state graph, then run it."""
-
-    def __init__(self) -> None:
-        self.state_graph: Any | None = None
-
-    @abstractmethod
-    def compile(self) -> None:
-        """Compile the LangGraph state machine into ``self.state_graph``."""
-        raise NotImplementedError
-
-    @abstractmethod
-    def run(
-        self, q_in: QueryInState, *, config: RunnableConfig | None = None
-    ) -> QueryOutState:
-        """Process a question and return the resulting parser state."""
-        raise NotImplementedError
-
-    @abstractmethod
-    def visualize(self) -> None:
-        """Generate a visualization of the state graph."""
-        raise NotImplementedError
+def _merge(state: dict[str, Any], update: dict[str, Any]) -> None:
+    """Apply a step's update to the working state (lists in ``_APPEND_KEYS`` append)."""
+    for key, value in update.items():
+        if key in _APPEND_KEYS:
+            state.setdefault(key, []).extend(value)
+        else:
+            state[key] = value
 
 
-class ActionNLParser(BaseParser):
+class ActionNLParser:
     """Optional human-in-the-loop clarification + review, then an atomic action
-    sketch (one SEMANTIC or RELATIONAL op per action) and, with function reuse on,
-    a separate per-action pick of matching library functions."""
+    sketch (one SEMANTIC or RELATIONAL op per action).
+
+    With ``function_reuse`` each action is annotated with matching library
+    functions: either by a separate per-action pick after the sketch (default) or,
+    with ``sketch_with_functions``, in the same LLM call that drafts the sketch (the
+    library is shown to the sketch model; with ``fn_coarsening`` a function covering
+    several adjacent steps licenses one coarse action). An empty library always
+    falls back to the plain atomic prompt.
+    """
 
     def __init__(
         self,
@@ -91,10 +87,10 @@ class ActionNLParser(BaseParser):
         auto_mode: bool = False,
         function_reuse: bool = True,
         fn_manager: FunctionManager | None = None,
+        sketch_with_functions: bool = False,
         fn_coarsening: bool = False,
         max_pick_concurrency: int = 10,
     ) -> None:
-        super().__init__()
         self.max_clarifications = max_clarifications
         self.max_revisions = max_revisions
         self.clarification_llm: BaseChatModel = clarification_llm
@@ -102,86 +98,57 @@ class ActionNLParser(BaseParser):
         self.revision_llm: BaseChatModel = revision_llm
         # True skips both human review points (clarification, sketch).
         self.auto_mode = auto_mode
-        # True adds the ``pick_functions`` node.
+        # True annotates actions with library functions (pick step or fused sketch).
         self.function_reuse = function_reuse
         self._fn_manager = fn_manager or FunctionManager()
-        # Honoured by ActionNLParserWithFunctions only.
+        # True fuses sketch + function pick into one call (no separate pick step).
+        self.sketch_with_functions = sketch_with_functions
+        # Honoured by the fused sketch only.
         self.fn_coarsening = fn_coarsening
         self.max_pick_concurrency = max_pick_concurrency
 
-    def compile(self) -> None:
-        graph = StateGraph(
-            ParserState, input_schema=QueryInState, output_schema=QueryOutState
+    def run(self, q_in: QueryInState) -> QueryOutState:
+        """Process the NL question through the clarification and review loops."""
+        logger.info("Starting NL parsing process.")
+        state: dict[str, Any] = {
+            "q_in": q_in["q_in"],
+            "relation_context": q_in["relation_context"],
+            "input_rel_names": list(q_in.get("input_rel_names") or []),
+            "actions": [],
+            "reviews_messages": [],
+            "clarification_messages": [],
+            "runtime_deferred": [],
+            "reviews_count": 0,
+            "clarifications_count": 0,
+        }
+
+        # Clarification loop: bounded by ``max_clarifications`` in the decision.
+        while True:
+            _merge(state, self._clarification_check_node(state))
+            if self._decide_clarification_needed_edge(state) == "next":
+                break
+            _merge(state, self._get_clarification_node(state))
+
+        # Sketch + review loop: bounded by ``max_revisions`` in the decision.
+        while True:
+            _merge(state, self._draft_sketch_node(state))
+            if self.function_reuse and not self.sketch_with_functions:
+                _merge(state, self._pick_functions_node(state))
+            _merge(state, self._get_human_feedback_node(state))
+            if self._decide_revision_feedback_edge(state) == "next":
+                break
+
+        return QueryOutState(
+            q_in=state["q_in"],
+            actions=state["actions"],
+            relation_context=state["relation_context"],
+            input_rel_names=state["input_rel_names"],
         )
-
-        # nodes
-        graph.add_node("clarification_check", self._clarification_check_node)
-        graph.add_node("get_clarification", self._get_clarification_node)
-        graph.add_node("draft_sketch", self._draft_sketch_node)
-        if self.function_reuse:
-            graph.add_node("pick_functions", self._pick_functions_node)
-        graph.add_node("get_human_review", self._get_human_feedback_node)
-
-        # edges
-        graph.add_edge(START, "clarification_check")
-        graph.add_conditional_edges(
-            "clarification_check",
-            self._decide_clarification_needed_edge,
-            {"clarify": "get_clarification", "next": "draft_sketch"},
-        )
-        graph.add_edge("get_clarification", "clarification_check")
-        if self.function_reuse:
-            graph.add_edge("draft_sketch", "pick_functions")
-            graph.add_edge("pick_functions", "get_human_review")
-        else:
-            graph.add_edge("draft_sketch", "get_human_review")
-        graph.add_conditional_edges(
-            "get_human_review",
-            self._decide_revision_feedback_edge,
-            {"revise": "draft_sketch", "next": END},
-        )
-
-        self.state_graph = graph.compile()
-        logger.info("State graph compiled successfully.")
-
-    def visualize(self) -> None:
-        """Visualize the compiled state graph if available."""
-        if self.state_graph is None:
-            raise RuntimeError(
-                "State graph has not been compiled. Run `compile()` first."
-            )
-        else:
-            try:
-                from IPython.display import Image, display
-
-                display(Image(self.state_graph.get_graph().draw_mermaid_png()))
-            except Exception as e:
-                logger.warning(
-                    f"Failed to display graph image: {e}, falling back to ASCII."
-                )
-                print(self.state_graph.get_graph().draw_ascii())
-
-    def run(
-        self, q_in: QueryInState, *, config: RunnableConfig | None = None
-    ) -> QueryOutState:
-        """Process the NL question through clarification and review loops."""
-        if self.state_graph is None:
-            raise RuntimeError(
-                "State graph has not been compiled. Run `compile()` first."
-            )
-        else:
-            logger.info("Starting NL parsing process.")
-            cfg: RunnableConfig = config or {
-                "configurable": {"thread_id": 1},
-                "recursion_limit": 20,
-            }
-            out = self.state_graph.invoke(q_in, cfg)
-            return QueryOutState(**out)
 
     # ------------------------------------------------------------------
-    # Internal nodes and edges
+    # Steps and decisions (each step returns an update to the working state)
 
-    def _clarification_check_node(self, state: ParserState, config=None) -> dict:
+    def _clarification_check_node(self, state: dict[str, Any]) -> dict:
         """entry-node, check for clarification need"""
         q_in = state["q_in"]
         assert (
@@ -240,7 +207,7 @@ class ActionNLParser(BaseParser):
             "clarifications_count": clarifications_count,
         }
 
-    def _get_clarification_node(self, state: ParserState, config=None) -> dict:
+    def _get_clarification_node(self, state: dict[str, Any]) -> dict:
         """Get user's response to clarification question."""
         question_text = state["clarification_messages"][-1]
         options: list[dict[str, str]] = state.get("clarification_options", [])
@@ -320,7 +287,7 @@ class ActionNLParser(BaseParser):
         }
 
     def _decide_clarification_needed_edge(
-        self, state: ParserState, config=None
+        self, state: dict[str, Any]
     ) -> Literal["clarify", "next"]:
         """Decide whether clarification is needed based on model response"""
         clarification_count = (
@@ -340,14 +307,18 @@ class ActionNLParser(BaseParser):
             return "next"
         return "clarify"
 
-    def _draft_sketch_node(self, state: ParserState, config=None) -> dict:
-        """Draft (or revise) a query sketch with chain-of-thought reasoning"""
+    def _draft_sketch_node(self, state: dict[str, Any]) -> dict:
+        """Draft (or revise) a query sketch with chain-of-thought reasoning.
+
+        Revisions always use the plain revision prompt; function picks carry over
+        on actions whose name is unchanged. A fresh draft uses the function-directed
+        prompt only with ``sketch_with_functions`` and a non-empty library.
+        """
         q_in = state["q_in"]
         assert (
             isinstance(q_in, str) and q_in.strip()
         ), "Input question must be a non-empty string."
         rc = state["relation_context"]
-
         df_descriptions = rc.describe_all_tables()
 
         feedback_messages = state.get("reviews_messages") or []
@@ -356,6 +327,9 @@ class ActionNLParser(BaseParser):
             last_feedback
         )
         previous_sketch = state.get("actions")
+        previous_by_name: dict[str, Action] = {
+            a.name: a for a in (previous_sketch or [])
+        }
 
         revision_ct = state.get("reviews_count", 0)
         if has_revision_feedback and previous_sketch:
@@ -364,29 +338,55 @@ class ActionNLParser(BaseParser):
                 human_feedback=str(last_feedback),
                 schemas=df_descriptions,
             )
-            llm_for_sketch = self.revision_llm
+            response = self._invoke_structured(
+                p, llm=self.revision_llm, schema=ActionSketchResponse
+            )
+            parsed_actions = [
+                self._to_action(
+                    item,
+                    selected_functions=(
+                        previous_by_name[item.name].selected_functions
+                        if item.name in previous_by_name
+                        else []
+                    ),
+                )
+                for item in response.actions
+            ]
             revision_ct += 1
         else:
-            p = format_action_query_sketch_prompt(
-                question=q_in,
-                schemas=df_descriptions,
-            )
-            llm_for_sketch = self.sketch_llm
-
-        response = self._invoke_structured(
-            p, llm=llm_for_sketch, schema=ActionSketchResponse
-        )
-        parsed_actions = [
-            Action(
-                name=item.name,
-                action=item.action,
-                inputs=item.inputs,
-                output=item.output,
-                output_type=item.output_type,
-                op_kind=item.op_kind,
-            )
-            for item in response.actions
-        ]
+            valid_names: set[str] = set()
+            if self.sketch_with_functions:
+                valid_names = set(self._fn_manager.discover_functions().keys())
+            if valid_names:
+                p = format_action_query_sketch_with_functions_prompt(
+                    question=q_in,
+                    functions_block=self._fn_manager.render_functions_summary(),
+                    schemas=df_descriptions,
+                    fn_coarsening=self.fn_coarsening,
+                )
+                response = self._invoke_structured(
+                    p, llm=self.sketch_llm, schema=ActionSketchWithFunctionsResponse
+                )
+                parsed_actions = [
+                    self._to_action(
+                        item,
+                        selected_functions=[
+                            n
+                            for n in (item.selected_functions or [])
+                            if n in valid_names
+                        ],
+                    )
+                    for item in response.actions
+                ]
+            else:
+                # Plain atomic prompt (also the fallback for an empty library).
+                p = format_action_query_sketch_prompt(
+                    question=q_in, schemas=df_descriptions
+                )
+                response = self._invoke_structured(
+                    p, llm=self.sketch_llm, schema=ActionSketchResponse
+                )
+                parsed_actions = [self._to_action(item) for item in response.actions]
 
         parsed_actions = self._inject_populate_actions(parsed_actions, rc)
         parsed_actions = self._dedupe_action_names(parsed_actions)
@@ -394,6 +394,19 @@ class ActionNLParser(BaseParser):
             "actions": parsed_actions,
             "reviews_count": revision_ct,
         }
+
+    @staticmethod
+    def _to_action(item: Any, *, selected_functions: list[str] | None = None) -> Action:
+        """One response item -> :class:`Action`."""
+        return Action(
+            name=item.name,
+            action=item.action,
+            inputs=item.inputs,
+            output=item.output,
+            output_type=item.output_type,
+            op_kind=item.op_kind,
+            selected_functions=list(selected_functions or []),
+        )
 
     @staticmethod
     def _dedupe_action_names(
@@ -433,7 +446,7 @@ class ActionNLParser(BaseParser):
             lines.append(f"    out    : {act.output}")
         return "\n".join(lines)
 
-    def _get_human_feedback_node(self, state: ParserState, config=None) -> dict:
+    def _get_human_feedback_node(self, state: dict[str, Any]) -> dict:
         """Get human feedback on the drafted query sketch"""
         if self.auto_mode:
             logger.info("auto_mode: skipping human review of query sketch.")
@@ -462,7 +475,7 @@ class ActionNLParser(BaseParser):
         }
 
     def _decide_revision_feedback_edge(
-        self, state: ParserState, config=None
+        self, state: dict[str, Any]
     ) -> Literal["revise", "next"]:
         """Decide whether revision is needed based on human feedback"""
         last_message = state["reviews_messages"][-1]
@@ -511,7 +524,7 @@ class ActionNLParser(BaseParser):
 
         return populate_actions + actions
 
-    def _pick_functions_node(self, state: ParserState, config=None) -> dict:
+    def _pick_functions_node(self, state: dict[str, Any]) -> dict:
         """Pick library functions per action (parallel LLM calls); mutates
         ``selected_functions`` in place. ``contextvars.copy_context().run`` keeps the
         child LLM runs under the parent trace."""
@@ -578,140 +591,3 @@ class ActionNLParser(BaseParser):
         return invoke_structured_with_retry(
             prompt, llm=llm, schema=schema, max_retries=max_retries
         )
-
-
-class ActionNLParserWithFunctions(ActionNLParser):
-    """Sketch generation + function picking in ONE LLM call: the library is shown to
-    the sketch LLM and each action carries its ``selected_functions``. With
-    ``fn_coarsening`` a function covering several adjacent steps licenses one coarse
-    action. With an empty library the atomic prompt of :class:`ActionNLParser` is used.
-    """
-
-    def compile(self) -> None:
-        graph = StateGraph(
-            ParserState, input_schema=QueryInState, output_schema=QueryOutState
-        )
-
-        graph.add_node("clarification_check", self._clarification_check_node)
-        graph.add_node("get_clarification", self._get_clarification_node)
-        graph.add_node("draft_sketch", self._draft_sketch_node)
-        graph.add_node("get_human_review", self._get_human_feedback_node)
-
-        graph.add_edge(START, "clarification_check")
-        graph.add_conditional_edges(
-            "clarification_check",
-            self._decide_clarification_needed_edge,
-            {"clarify": "get_clarification", "next": "draft_sketch"},
-        )
-        graph.add_edge("get_clarification", "clarification_check")
-        graph.add_edge("draft_sketch", "get_human_review")
-        graph.add_conditional_edges(
-            "get_human_review",
-            self._decide_revision_feedback_edge,
-            {"revise": "draft_sketch", "next": END},
-        )
-
-        self.state_graph = graph.compile()
-        logger.info("State graph (with-functions) compiled successfully.")
-
-    def _draft_sketch_node(self, state: ParserState, config=None) -> dict:
-        """Fused sketch + function-picking sketch generation (one LLM call)."""
-        q_in = state["q_in"]
-        assert (
-            isinstance(q_in, str) and q_in.strip()
-        ), "Input question must be a non-empty string."
-        rc = state["relation_context"]
-        df_descriptions = rc.describe_all_tables()
-
-        feedback_messages = state.get("reviews_messages") or []
-        last_feedback = feedback_messages[-1] if feedback_messages else None
-        has_revision_feedback = bool(last_feedback) and not _is_acceptance(
-            last_feedback
-        )
-        previous_sketch = state.get("actions")
-        previous_by_name: dict[str, Action] = {
-            a.name: a for a in (previous_sketch or [])
-        }
-
-        revision_ct = state.get("reviews_count", 0)
-        if has_revision_feedback and previous_sketch:
-            # Revisions use the no-functions prompt; picks carry over on unchanged actions.
-            p = format_revision_prompt(
-                sketch=str(previous_sketch),
-                human_feedback=str(last_feedback),
-                schemas=df_descriptions,
-            )
-            response = self._invoke_structured(
-                p, llm=self.revision_llm, schema=ActionSketchResponse
-            )
-            parsed_actions = []
-            for item in response.actions:
-                prev = previous_by_name.get(item.name)
-                parsed_actions.append(
-                    Action(
-                        name=item.name,
-                        action=item.action,
-                        inputs=item.inputs,
-                        output=item.output,
-                        output_type=item.output_type,
-                        op_kind=item.op_kind,
-                        selected_functions=(prev.selected_functions if prev else []),
-                    )
-                )
-            revision_ct += 1
-        else:
-            functions_block = self._fn_manager.render_functions_summary()
-            valid_names = set(self._fn_manager.discover_functions().keys())
-            if not valid_names:
-                # Empty library: nothing can steer or coarsen, so use the atomic prompt.
-                p = format_action_query_sketch_prompt(
-                    question=q_in, schemas=df_descriptions
-                )
-                response = self._invoke_structured(
-                    p, llm=self.sketch_llm, schema=ActionSketchResponse
-                )
-                parsed_actions = [
-                    Action(
-                        name=item.name,
-                        action=item.action,
-                        inputs=item.inputs,
-                        output=item.output,
-                        output_type=item.output_type,
-                        op_kind=item.op_kind,
-                        selected_functions=[],
-                    )
-                    for item in response.actions
-                ]
-            else:
-                p = format_action_query_sketch_with_functions_prompt(
-                    question=q_in,
-                    functions_block=functions_block,
-                    schemas=df_descriptions,
-                    fn_coarsening=self.fn_coarsening,
-                )
-                response = self._invoke_structured(
-                    p, llm=self.sketch_llm, schema=ActionSketchWithFunctionsResponse
-                )
-                parsed_actions = [
-                    Action(
-                        name=item.name,
-                        action=item.action,
-                        inputs=item.inputs,
-                        output=item.output,
-                        output_type=item.output_type,
-                        op_kind=item.op_kind,
-                        selected_functions=[
-                            n
-                            for n in (item.selected_functions or [])
-                            if n in valid_names
-                        ],
-                    )
-                    for item in response.actions
-                ]
-
-        parsed_actions = self._inject_populate_actions(parsed_actions, rc)
-        parsed_actions = self._dedupe_action_names(parsed_actions)
-        return {
-            "actions": parsed_actions,
-            "reviews_count": revision_ct,
-        }

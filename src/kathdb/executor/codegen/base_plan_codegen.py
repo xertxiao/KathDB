@@ -15,7 +15,7 @@ import pandas as pd
 
 from ...common.context import DBContext
 from ...common.logger import get_logger
-from ...plan_gen.plan_node import FAONode
+from ...plan_gen.plan_node import FAONode, topo_layers
 from ...worker import WorkerManager
 from .codegen import CodeGenerator, _build_consumer_demands_map
 from .grouping_cache import GroupingCache
@@ -167,7 +167,7 @@ class BasePlanCodegen:
     # ------------------------------------------------------------------
 
     def _codegen_all(self) -> None:
-        layers = self._code_gen._topo_layers(self._atomic_root)
+        layers = topo_layers(self._atomic_root)
         for layer_idx, layer in enumerate(layers):
             for node in layer:
                 try:
@@ -263,7 +263,7 @@ class BasePlanCodegen:
             for inp in n.inputs:
                 if inp and inp not in producers and inp not in full:
                     full[inp] = self._base_count(inp)
-        for layer in self._code_gen._topo_layers(self._atomic_root):
+        for layer in topo_layers(self._atomic_root):
             for n in layer:
                 in_fulls = [full[i] for i in n.inputs if i in full]
                 primary_full = max(in_fulls) if in_fulls else float(self._k)

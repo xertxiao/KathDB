@@ -41,8 +41,9 @@ from .common.view_schema import Modality
 from .config import KathDBConfig, make_llm
 from .executor.codegen import CodeGenerator
 from .executor.codegen.grouping_cache import GroupingCache
-from .executor.executor import Executor, decide_persistence
-from .parser import ActionNLParser, ActionNLParserWithFunctions, BaseParser
+from .executor import Executor
+from .executor.persistence import decide_persistence
+from .parser import ActionNLParser
 from .plan_gen import PlanGenerator
 from .plan_gen.optimizer import GroupingConfig
 from .plan_gen.optimizer.list_rank import make_selector_factory
@@ -196,11 +197,11 @@ class KathDB:
             sources=self._fn_sources(),
         )
 
-    def _build_parser(self) -> BaseParser:
+    def _build_parser(self) -> ActionNLParser:
         cfg = self._config
         llm = cfg.get_llm("parser")
         function_reuse = bool(self._fn_sources())
-        kwargs: dict[str, Any] = dict(
+        return ActionNLParser(
             clarification_llm=llm,
             sketch_llm=llm,
             revision_llm=llm,
@@ -209,19 +210,15 @@ class KathDB:
             auto_mode=not cfg.human_in_the_loop,
             function_reuse=function_reuse,
             fn_manager=self._fn_manager,
+            # "action" picks functions in a separate step; the other parser types
+            # show the library to the sketch model itself.
+            sketch_with_functions=function_reuse and cfg.parser_type != "action",
+            fn_coarsening=cfg.parser_type.endswith("with_coarsening"),
         )
-        if cfg.parser_type == "action" or not function_reuse:
-            parser: BaseParser = ActionNLParser(**kwargs)
-        else:
-            parser = ActionNLParserWithFunctions(
-                fn_coarsening=cfg.parser_type.endswith("with_coarsening"), **kwargs
-            )
-        parser.compile()
-        return parser
 
     def _build_plan_gen(self) -> PlanGenerator:
         cfg = self._config
-        gen = PlanGenerator(
+        return PlanGenerator(
             lp_llm=cfg.get_llm("plan_gen"),
             max_retries=cfg.max_plan_gen_retries,
             demand_propagation=cfg.demand_propagation,
@@ -235,8 +232,6 @@ class KathDB:
             ),
             fn_manager=self._fn_manager,
         )
-        gen.compile()
-        return gen
 
     def _build_executor(self) -> Executor:
         cfg = self._config
@@ -253,7 +248,6 @@ class KathDB:
             phy_opt=cfg.phy_opt,
             fn_manager=self._fn_manager,
         )
-        code_gen.compile()
         return Executor(
             code_gen=code_gen,
             auto_mode=not cfg.human_in_the_loop,

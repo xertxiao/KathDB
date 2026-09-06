@@ -22,5 +22,5 @@ rendered from it with `FunctionManager.save_function` /
 
 `_example/sem_map/` is a complete worked example (underscore-prefixed folders are
 not discovered); it is also the template the function finalizer shows the LLM when
-it turns a query-time function into a reusable one. `_common/` holds shared helpers
-(image/audio loading, prompt rendering, modality lookup).
+it turns a query-time function into a reusable one. `kathdb.common.fn_helpers` holds
+shared helpers (image/audio loading, prompt rendering, modality lookup).

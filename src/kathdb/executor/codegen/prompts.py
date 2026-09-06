@@ -111,7 +111,9 @@ def _phys_exec_rule(image_detail_low: bool = True, phy_opt: bool = True) -> str:
         "means exact or normalized equality against known values; a fuzzy heuristic "
         "(token overlap, substring, edit distance) is not a substitute for the model's "
         "judgement — when the match itself needs judgement, give the model the "
-        "candidate list inside the single per-record call and let it choose."
+        "candidate list inside the single per-record call and let it choose. Likewise "
+        "code takes over a judgement only when it is exact (e.g., equality on a stored "
+        "column), never by guessing from words in free text."
     )
     rule += (
             " You MAY call the provided `kathdb.fn` operators"
@@ -722,7 +724,8 @@ def _format_optimization_rationale_block(rationale: str | None) -> str:
         f"{text}\n\n"
         "Use it as the intended structure. If it conflicts with the cost rules below "
         "(one pass over a single input, no loop over pairs of two inputs, an early exit "
-        "only when the skipped rows cannot change the output), the rules win.\n"
+        "only when the skipped rows cannot change the output, no guessed judgements in "
+        "code, one call per item), the rules win.\n"
     )
 
 

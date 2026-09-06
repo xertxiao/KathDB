@@ -1,19 +1,15 @@
-"""Base plan generator: parser actions -> operator DAG, plus the demand-propagation pass.
+"""Demand propagation: annotate the operator DAG with the columns each consumer needs
+(and, in the one-shot variant, decide SEMANTIC vs RELATIONAL per node).
 
-The base graph is ``build_fao_dag -> END``; subclasses extend :meth:`compile`
-(see :class:`kathdb.plan_gen.plan_generator.PlanGenerator`).
+Mixed into :class:`~kathdb.plan_gen.plan_generator.PlanGenerator`, which sets
+``lp_llm``, ``max_retries``, ``demand_propagation`` and
+``demand_propagation_one_shot_max_actions``.
 """
 
 from __future__ import annotations
 
-import asyncio
-import json
-from pathlib import Path
-from typing import Any
-
 from langchain_core.language_models import BaseChatModel
 from langchain_core.runnables.config import RunnableConfig
-from langgraph.graph.state import END, START, StateGraph
 
 from ..common.context import DBContext
 from ..common.logger import get_logger
@@ -21,7 +17,7 @@ from ..common.utils import (
     abatch_structured_with_retry,
     ainvoke_structured_with_retry,
 )
-from .plan_node import FAONode, build_fao_dag
+from .plan_node import FAONode
 from .prompts import (
     format_lp_all_node_demand_prompt,
     format_lp_demand_propagation_prompt,
@@ -32,90 +28,19 @@ from .response_schemas import (
     DemandPropagationResponse,
     QueryDemandResponse,
 )
-from .state_schemas import PlanGenInState, PlanGenOutState, PlanGenState
 
 logger = get_logger(__name__)
 
-__all__ = ["PlanGeneratorBase"]
+__all__ = ["DemandPropagation"]
 
 
-class PlanGeneratorBase:
-    """Structural base: builds the operator DAG; provides demand propagation."""
+class DemandPropagation:
+    """Demand-propagation pass over an :class:`FAONode` DAG (mixin)."""
 
-    def __init__(
-        self,
-        *,
-        lp_llm: BaseChatModel,
-        max_retries: int = 3,
-        demand_propagation: bool = True,
-        demand_propagation_one_shot_max_actions: int = 15,
-    ) -> None:
-        self.lp_llm = lp_llm
-        self.max_retries = max_retries
-        # Plans with at most ``demand_propagation_one_shot_max_actions`` actions are
-        # annotated in one LLM call; larger plans go top-down, one BFS level per round.
-        self.demand_propagation = demand_propagation
-        self.demand_propagation_one_shot_max_actions = (
-            demand_propagation_one_shot_max_actions
-        )
-        self.state_graph: Any | None = None
-
-    # ------------------------------------------------------------------
-    # Compile / run
-    # ------------------------------------------------------------------
-
-    def compile(self) -> None:
-        graph = StateGraph(
-            PlanGenState, input_schema=PlanGenInState, output_schema=PlanGenOutState
-        )
-        graph.add_node("build_fao_dag", self._build_plan_node)
-        graph.add_edge(START, "build_fao_dag")
-        graph.add_edge("build_fao_dag", END)
-        self.state_graph = graph.compile()
-        logger.info("Plan-generation state graph compiled.")
-
-    def run(
-        self, q_in: PlanGenInState, *, config: RunnableConfig | None = None
-    ) -> PlanGenOutState:
-        return asyncio.run(self.arun(q_in, config=config))
-
-    async def arun(
-        self, q_in: PlanGenInState, *, config: RunnableConfig | None = None
-    ) -> PlanGenOutState:
-        if self.state_graph is None:
-            raise RuntimeError("Plan-generation state graph not compiled.")
-        cfg: RunnableConfig = config or {
-            "configurable": {"thread_id": 1},
-            "recursion_limit": 50,
-        }
-        out = await self.state_graph.ainvoke(q_in, cfg)
-        return PlanGenOutState(**out)
-
-    def visualize(self) -> None:
-        if self.state_graph is None:
-            raise RuntimeError("Plan-generation state graph not compiled.")
-        try:
-            from IPython.display import Image, display
-
-            display(Image(self.state_graph.get_graph().draw_mermaid_png()))
-        except Exception as exc:  # pragma: no cover - debug helper
-            logger.warning(
-                "Failed to render mermaid graph (%s); printing ASCII fallback.",
-                exc,
-            )
-            print(self.state_graph.get_graph().draw_ascii())
-
-    # ------------------------------------------------------------------
-    # Graph nodes
-    # ------------------------------------------------------------------
-
-    def _build_plan_node(self, state: PlanGenState, config=None) -> dict[str, Any]:
-        """Build the operator DAG from the parser actions; no annotation here."""
-        actions = state["actions"]
-        rc: DBContext = state["relation_context"]
-        schema_names = rc.list_tables()
-        plan_entries = [self._make_entry(action) for action in actions]
-        return {"logical_plan": build_fao_dag(plan_entries, schema_names)}
+    lp_llm: BaseChatModel
+    max_retries: int
+    demand_propagation: bool
+    demand_propagation_one_shot_max_actions: int
 
     # ------------------------------------------------------------------
     # Demand propagation
@@ -475,57 +400,3 @@ class PlanGeneratorBase:
                 len(response.op_kind_decisions),
                 rewrites_recorded,
             )
-
-    # ------------------------------------------------------------------
-    # Helpers
-    # ------------------------------------------------------------------
-
-    @staticmethod
-    def _make_entry(action: Any) -> dict[str, Any]:
-        """Convert one parser :class:`~kathdb.parser.action.Action` into a plan entry."""
-        from ..parser.action import Action
-
-        if isinstance(action, Action):
-            output_name = action.output.strip() if action.output else ""
-            description = action.action.strip() if action.action else ""
-            payload: dict[str, Any] = {
-                # Order-preserving dedup keeps child-attachment order deterministic.
-                "input": list(dict.fromkeys(action.inputs)),
-                "output": [output_name] if output_name else [],
-            }
-            if description:
-                payload["description"] = description
-            if action.name and action.name.strip():
-                payload["name"] = action.name.strip()
-            if action.output_type:
-                payload["output_type"] = str(action.output_type)
-            if action.op_kind:
-                payload["op_kind"] = str(action.op_kind)
-            return payload
-        # Plain-dict actions (tests / programmatic plans).
-        output = action.get("out")
-        output_name = output.strip() if isinstance(output, str) else ""
-        text = action.get("action")
-        description = text.strip() if isinstance(text, str) else ""
-        payload = {
-            "input": list(dict.fromkeys(action.get("in", []))),
-            "output": [output_name] if output_name else [],
-        }
-        if description:
-            payload["description"] = description
-        name = action.get("name")
-        if isinstance(name, str) and name.strip():
-            payload["name"] = name.strip()
-        if "output_type" in action:
-            payload["output_type"] = str(action["output_type"])
-        if "op_kind" in action and action["op_kind"]:
-            payload["op_kind"] = str(action["op_kind"])
-        return payload
-
-    @staticmethod
-    def save_lp(lp_node: FAONode, path: str | None = None) -> Path:
-        """Save the logical plan to a JSON file."""
-        out_path = Path(path or "logical_plan.json")
-        out_path.write_text(json.dumps(lp_node.to_dict(), indent=2), encoding="utf-8")
-        logger.info("Saved logical plan to %s", out_path)
-        return out_path

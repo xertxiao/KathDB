@@ -1,4 +1,5 @@
-"""Shared helpers for the pre_built_fn semantic operators."""
+"""Shared helpers for hand-written (pre-built) operators: media loading, prompt
+rendering per row, value extraction, modality lookup."""
 
 from .extract import extract_column, snap_to_vocab
 from .media import (

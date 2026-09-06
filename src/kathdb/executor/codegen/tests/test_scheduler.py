@@ -1,4 +1,4 @@
-"""Dependency-driven scheduling in CodeGenerator.run (parallel branches)."""
+"""Dependency-driven scheduling in Executor.run (parallel branches)."""
 
 from __future__ import annotations
 
@@ -8,6 +8,7 @@ import time
 import pandas as pd
 
 from kathdb.executor.codegen.codegen import CodeGenerator
+from kathdb.executor.executor import Executor
 from kathdb.plan_gen.plan_node import FAONode
 
 
@@ -74,6 +75,7 @@ def _max_in_flight(events):
 
 def _run(max_workers, durations):
     cg = CodeGenerator(generation_llm=None, diagnosis_llm=None, revision_llm=None)
+    ex = Executor(code_gen=cg, save_functions=False)
     events: list[tuple[str, str, float]] = []
     lock = threading.Lock()
     t0 = time.time()
@@ -93,9 +95,9 @@ def _run(max_workers, durations):
         return plan_node
 
     cg._codegen_layered_node = fake_codegen  # type: ignore[assignment]
-    cg._execute_with_regen = fake_exec  # type: ignore[assignment]
+    ex._execute_with_regen = fake_exec  # type: ignore[assignment]
     pool = _Pool(max_workers)
-    out = cg.run(
+    out = ex.run(
         {
             "q_in": "q",
             "actions": [],
@@ -106,12 +108,12 @@ def _run(max_workers, durations):
         },
         worker_manager=pool,
     )
-    return out, events, pool
+    return out, ex, events, pool
 
 
 def test_two_slots_run_branches_concurrently_and_join_waits():
     d = {"A": 0.15, "A2": 0.15, "A3": 0.15, "B": 0.5, "B2": 0.15, "C": 0.05}
-    out, events, pool = _run(2, d)
+    out, ex, events, pool = _run(2, d)
     start = {op: t for op, kind, t in events if kind == "start"}
     end = {op: t for op, kind, t in events if kind == "end"}
     # A's chain progressed while B was still running.
@@ -120,15 +122,13 @@ def test_two_slots_run_branches_concurrently_and_join_waits():
     assert start["C"] >= max(end["A3"], end["B2"]) - 1e-3
     # Never more than 2 operators in flight; but 2 at once did happen.
     assert _max_in_flight(events) == 2
-    assert out["code_tree"].op == "C"
-    assert set(out["code_tree"].metadata["_layered_materialized_outputs"]) == {
-        "in_t", "a", "a2", "a3", "b", "b2", "c",
-    }
+    assert ex._last_code_tree.op == "C"
+    assert set(out) == {"in_t", "a", "a2", "a3", "b", "b2", "c"}
 
 
 def test_one_slot_is_sequential():
     d = {k: 0.02 for k in ("A", "A2", "A3", "B", "B2", "C")}
-    out, events, pool = _run(1, d)
+    out, ex, events, pool = _run(1, d)
     assert _max_in_flight(events) == 1
     ends = [t for op, kind, t in events if kind == "end"]
     starts = [t for op, kind, t in events if kind == "start"][1:]

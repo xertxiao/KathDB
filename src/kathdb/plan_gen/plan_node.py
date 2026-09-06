@@ -7,10 +7,15 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Iterable, Mapping, Sequence
 
+from ..common.logger import get_logger
+
+logger = get_logger(__name__)
+
 __all__ = [
     "FAONode",
     "build_fao_dag",
     "load_fao_dag",
+    "topo_layers",
 ]
 
 
@@ -339,3 +344,50 @@ def _coerce_names(value: object) -> list[str]:
         ]
     return []
 
+
+def topo_layers(root: FAONode) -> list[list[FAONode]]:
+    """Group the plan's operators into topological layers (``input_relation`` and
+    the ``logical_plan`` root excluded); layer ``d`` holds the operators whose
+    deepest producer sits in layer ``d - 1``."""
+    # Dedupe by ``op``: diamond plans hold duplicate instances of a shared node.
+    nodes: list[FAONode] = []
+    seen_ops: set[str] = set()
+    for n in root.iter_postorder():
+        if n is root or n.op in {"input_relation", "logical_plan"}:
+            continue
+        if n.op in seen_ops:
+            continue
+        seen_ops.add(n.op)
+        nodes.append(n)
+    producers: dict[str, FAONode] = {}
+    for n in nodes:
+        for o in n.outputs:
+            prev = producers.get(o)
+            if prev is not None and prev is not n:
+                logger.warning(
+                    "topo_layers: distinct nodes %r and %r both declare output %r; "
+                    "keeping %r as producer",
+                    prev.op,
+                    n.op,
+                    o,
+                    prev.op,
+                )
+            producers.setdefault(o, n)
+
+    depth: dict[int, int] = {}
+    for n in nodes:
+        d = 0
+        for inp in n.inputs:
+            prod = producers.get(inp)
+            if prod is not None and prod is not n:
+                pd_ = depth.get(id(prod))
+                if pd_ is None:
+                    pd_ = 0
+                d = max(d, pd_ + 1)
+        depth[id(n)] = d
+
+    max_d = max(depth.values(), default=-1)
+    layers: list[list[FAONode]] = [[] for _ in range(max_d + 1)]
+    for n in nodes:
+        layers[depth[id(n)]].append(n)
+    return layers

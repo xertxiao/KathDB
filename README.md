@@ -95,16 +95,22 @@ src/kathdb/
   cli/                 the `kathdb` interactive shell
   config.py            KathDBConfig (basic / advanced settings) + LLM factory
   parser/              NL question -> atomic action sketch (+ optional human review,
-                       + library-steered variant)
-  plan_gen/            PlanGeneratorBase (DAG build, demand propagation) and
-                       PlanGenerator (function threading + grouping); optimizer/
+                       + library-steered sketch)
+  plan_gen/            PlanGenerator: DAG build, function threading, demand
+                       propagation (demand_propagation.py), grouping
     optimizer/         enumerate convex partitions of the plan, LLM-rank them
-  executor/            per-operator code generation + layered execution
-    codegen/           prompts, code generator, plan-time base-plan codegen/profiling
+  executor/            Executor: dependency-driven scheduling, sandboxed execution
+                       with diagnose-and-regenerate, function saves; persistence.py
+    codegen/           prompts, per-operator code generator, plan-time base-plan
+                       codegen/profiling
   worker/              conda-isolated subprocess that runs generated code
-  common/              catalog (DuckDB), function library, cost tracking, utils
+  common/              catalog (DuckDB), function library, cost tracking, utils,
+                       fn_helpers/ (shared helpers for hand-written operators)
+  fn/                  NOT a store: the import resolver behind `from kathdb.fn
+                       import <name>` (looks in pre_built_fn/, then generated_fn/)
   pre_built_fn/        your hand-written operators (see its README; ships empty)
-  generated_fn/        functions saved from prior queries
+  generated_fn/        functions saved from prior queries (relocatable via
+                       generated_fn_dir / KATHDB_GENERATED_FN_DIR)
 ```
 
 ## Tests
