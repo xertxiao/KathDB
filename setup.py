@@ -27,6 +27,7 @@ setup(
     package_dir={"": "src"},
     packages=find_packages(where="src"),
     include_package_data=True,
+    package_data={"kathdb": ["**/*.md", "**/*.txt", "generated_fn/.gitkeep"]},
     python_requires=">=3.10",
     install_requires=install_requires,
 )

@@ -64,6 +64,11 @@ class WorkerManager:
         # Spawns are serialized: the first one may CREATE the conda env.
         self._spawn_lock = threading.Lock()
 
+    @property
+    def env_name(self) -> str | None:
+        """Conda env the workers run in (``None`` until the first worker is spawned)."""
+        return self._env_name
+
     # ------------------------------------------------------------------
     # Leasing (parallel execution)
     # ------------------------------------------------------------------

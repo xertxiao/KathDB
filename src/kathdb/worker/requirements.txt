@@ -1,0 +1,10 @@
+# Packages available to the generated code inside the worker environment.
+pandas
+numpy
+pyarrow
+duckdb
+litellm
+Pillow
+requests
+scikit-learn
+scipy

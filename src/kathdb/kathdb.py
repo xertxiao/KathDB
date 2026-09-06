@@ -17,6 +17,8 @@
 
 from __future__ import annotations
 
+import time
+
 import os
 import tempfile
 from pathlib import Path
@@ -133,6 +135,7 @@ class KathDB:
 
         self._last_grouping_trace: dict[str, Any] | None = None
         self._last_cost: CostTracker | None = None
+        self._last_result_name: str | None = None
         # Worker-side LLM usage log; must be bound before the first ``get_worker()``.
         self._inference_log_path: str | None = None
 
@@ -261,7 +264,11 @@ class KathDB:
 
     def _build_worker_manager(self) -> WorkerManager:
         cfg = self._config
-        req = Path(cfg.requirements_path) if cfg.requirements_path else None
+        req = (
+            Path(cfg.requirements_path)
+            if cfg.requirements_path
+            else Path(__file__).parent / "worker" / "requirements.txt"
+        )
         return WorkerManager(
             conda_env_name=cfg.worker_env,
             requirements_path=req,
@@ -469,11 +476,13 @@ class KathDB:
         # Codegen runs in the executor's thread pool, so its usage is captured through a
         # config-attached handler; execution usage comes from the worker inference log.
         codegen_cb = new_stage_handler()
+        t_exec = time.perf_counter()
         result_ctx = self._executor.run(
             cg_in,
             worker_manager=self._worker_mgr,
             config=attach_handler(None, codegen_cb),
         )
+        tracker.add_wall_time("execution", time.perf_counter() - t_exec)
         tracker.record_usage_metadata("codegen", codegen_cb.usage_metadata)
         ei, eo, ec = read_inference_log_file(self._inference_log_path, reset=True)
         tracker.record_inference_totals("execution", ei, eo, ec)
@@ -482,6 +491,9 @@ class KathDB:
 
         # Generated code tree, for the persistence and function-save walks.
         code_tree = self._executor._last_code_tree
+        self._last_result_name = (
+            code_tree.outputs[-1] if code_tree is not None and code_tree.outputs else None
+        )
 
         # LLM-guided persistence: ask which result tables are worth keeping.
         tables_to_persist = decide_persistence(
@@ -501,6 +513,28 @@ class KathDB:
             self._executor.wait_for_saves()
 
         return result_ctx
+
+    @property
+    def worker_env_name(self) -> str | None:
+        """Conda env the worker runs in; pass it as ``worker_env`` to reuse it."""
+        return self._worker_mgr.env_name
+
+    def last_result_name(self) -> str | None:
+        """Name of the final relation produced by the most recent ``.query()``."""
+        return self._last_result_name
+
+    def last_result(self, result_ctx: dict[str, Any] | None = None) -> DataFrame | None:
+        """The final relation of the most recent ``.query()`` (``None`` if it produced none).
+
+        Pass the dict ``.query()`` returned; without it the relation is read from the
+        catalog, where it exists only if it was persisted.
+        """
+        name = self._last_result_name
+        if name is None:
+            return None
+        if result_ctx is not None and isinstance(result_ctx.get(name), DataFrame):
+            return result_ctx[name]
+        return self._ctx.load_table(name) if self._ctx.has_table(name) else None
 
     def last_grouping_trace(self) -> dict[str, Any] | None:
         """The grouping optimizer's trace for the most recent ``.query()``.
