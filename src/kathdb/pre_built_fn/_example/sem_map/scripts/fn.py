@@ -6,14 +6,14 @@ import pandas as pd
 
 from kathdb.common.model_call import call_model, run_batch
 from kathdb.common.logger import get_logger
-from kathdb.pre_built_fn._common import (
+from kathdb.common.fn_helpers import (
     build_row_prompt_and_media,
     parse_prompt_columns,
 )
 
 logger = get_logger(__name__)
 
-# Single source of truth; fn.md + spec.py are GENERATED from this + the typed
+# Single source of truth; fn.md is GENERATED from this + the typed
 # signature below (kathdb.common.fn_contract). Do not hand-edit them.
 CONTRACT = {
     "purpose": "Add one new column by applying an LLM prompt to each row (transform / extract / classify).",

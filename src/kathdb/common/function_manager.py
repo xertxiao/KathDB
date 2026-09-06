@@ -103,17 +103,11 @@ class FunctionManager:
 
     def _resolve_df_params(self, name: str) -> tuple[str, ...] | None:
         """DataFrame-param names from the CONTRACT + typed signature (AST, no
-        import), else from a ``spec.py`` ``df_params``; None excludes the function."""
+        import); None (no CONTRACT) excludes the function."""
         from .fn_contract import derive_df_params
 
         parsed = self._parse_contract(name)
-        if parsed is not None:
-            return derive_df_params(parsed)
-        try:
-            spec_cls = self.load_function_spec(name)
-        except Exception:
-            return None
-        return getattr(spec_cls, "df_params", None)
+        return derive_df_params(parsed) if parsed is not None else None
 
     # ------------------------------------------------------------------
     # Usage tracking & eviction
@@ -303,23 +297,6 @@ class FunctionManager:
         sys.modules[module_name] = mod
         spec.loader.exec_module(mod)
         return mod
-
-    def load_function_spec(self, name: str) -> type:
-        """Return the semantic spec dataclass from ``<dir>/{name}/spec.py``."""
-        fn_dir = self._resolve_fn_dir(name)
-        if fn_dir is None:
-            raise ImportError(f"Function '{name}' not found in any function directory")
-        spec_path = fn_dir / "spec.py"
-        mod = self._import_module_from_file(f"kathdb.fn.{name}.spec", spec_path)
-        for attr_name in dir(mod):
-            obj = getattr(mod, attr_name)
-            if (
-                isinstance(obj, type)
-                and hasattr(obj, "__dataclass_fields__")
-                and not attr_name.endswith("SysSpec")
-            ):
-                return obj
-        raise ImportError(f"No semantic spec dataclass found in {spec_path}")
 
     def load_function(self, name: str):
         """Import and return the callable from ``<dir>/{name}/scripts/fn.py``."""
@@ -554,7 +531,7 @@ class FunctionManager:
         return validate_contract(parsed)
 
     def regenerate_fn(self, name: str) -> list[str]:
-        """(Re)generate ``<fn>/fn.md`` from the CONTRACT and drop any ``spec.py``;
+        """(Re)generate ``<fn>/fn.md`` from the CONTRACT;
         returns drift issues (``["no CONTRACT"]`` when there is no CONTRACT)."""
         from .fn_contract import parse_fn_source, render_fn_md
 
@@ -567,9 +544,6 @@ class FunctionManager:
         parsed = parse_fn_source(code, name)
         issues = self.validate_function(name)
         (fn_dir / "fn.md").write_text(render_fn_md(parsed), encoding="utf-8")
-        stale_spec = fn_dir / "spec.py"
-        if stale_spec.exists():
-            stale_spec.unlink()
         if issues:
             logger.warning("regenerate_fn(%s): contract issues %s", name, issues)
         return issues

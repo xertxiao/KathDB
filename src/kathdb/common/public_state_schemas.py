@@ -1,4 +1,4 @@
-"""State schemas for KathDB common components, designed for LangGraph."""
+"""Input / output state of the parser stage."""
 
 from __future__ import annotations
 

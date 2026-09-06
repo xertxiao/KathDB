@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 from unittest.mock import AsyncMock, patch
 
-from kathdb.plan_gen import plan_generator_base
+from kathdb.plan_gen import demand_propagation
 from kathdb.plan_gen.plan_generator import PlanGenerator
 from kathdb.plan_gen.plan_node import FAONode
 from kathdb.plan_gen.response_schemas import (
@@ -88,7 +88,7 @@ def _mock_response(decisions: list[OpKindDecision]) -> AllNodesDemandResponse:
 
 def _patch_invoke(response: AllNodesDemandResponse):
     return patch.object(
-        plan_generator_base,
+        demand_propagation,
         "ainvoke_structured_with_retry",
         new=AsyncMock(return_value=response),
     )
