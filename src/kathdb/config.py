@@ -12,15 +12,20 @@
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, fields
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from langchain_core.language_models import BaseChatModel
+if TYPE_CHECKING:
+    from langchain_core.language_models import BaseChatModel
 
 DEFAULT_PLANNER_MODEL: str = "anthropic/claude-opus-5"
 DEFAULT_AI_OP_MODEL: str = "openai/gpt-4o-mini"
 DEFAULT_LLM_TEMPERATURE: float = 0.0
 DEFAULT_AI_OP_TEMPERATURE: float = 0.0
+# Output budget for the planner's structured responses (an action sketch or a code-gen
+# response can exceed the providers' 1k-token defaults, which truncates the JSON).
+DEFAULT_MAX_OUTPUT_TOKENS: int = 16384
 
 # Providers understood by :func:`make_llm` (the part before the slash in a model id).
 LLM_PROVIDERS: tuple[str, ...] = ("openai", "anthropic", "google", "azure_anthropic")
@@ -37,6 +42,7 @@ __all__ = [
     "DEFAULT_AI_OP_MODEL",
     "DEFAULT_LLM_TEMPERATURE",
     "DEFAULT_AI_OP_TEMPERATURE",
+    "DEFAULT_MAX_OUTPUT_TOKENS",
     "LLM_PROVIDERS",
     "PARSER_TYPES",
     "make_llm",
@@ -63,29 +69,43 @@ def split_model_id(model_id: str) -> tuple[str, str]:
     return provider, model
 
 
+def anthropic_accepts_temperature(model: str) -> bool:
+    """Claude 5 models reject the ``temperature`` parameter; older Claude models accept it."""
+    return re.search(r"claude-[a-z]+-5", model) is None
+
+
 def make_llm(
-    model_id: str, *, temperature: float = DEFAULT_LLM_TEMPERATURE
+    model_id: str,
+    *,
+    temperature: float = DEFAULT_LLM_TEMPERATURE,
+    max_tokens: int = DEFAULT_MAX_OUTPUT_TOKENS,
 ) -> BaseChatModel:
     """Instantiate a LangChain chat model from a ``provider/model`` id.
 
     Credentials come from the provider's usual environment variable
     (``OPENAI_API_KEY``, ``ANTHROPIC_API_KEY``, ``GOOGLE_API_KEY``);
     ``azure_anthropic/<deployment>`` reads ``AZURE_ANTHROPIC_ENDPOINT`` and
-    ``AZURE_ANTHROPIC_API_KEY`` and does not forward ``temperature``.
+    ``AZURE_ANTHROPIC_API_KEY``. ``temperature`` is not sent to Claude 5 models (or
+    to Azure deployments), which reject it.
     """
     provider, model = split_model_id(model_id)
     if provider == "openai":
         from langchain_openai import ChatOpenAI
 
-        return ChatOpenAI(model=model, temperature=temperature)
+        return ChatOpenAI(model=model, temperature=temperature, max_tokens=max_tokens)
     if provider == "anthropic":
         from langchain_anthropic import ChatAnthropic
 
-        return ChatAnthropic(model=model, temperature=temperature)
+        kwargs: dict[str, Any] = {"model": model, "max_tokens": max_tokens}
+        if anthropic_accepts_temperature(model):
+            kwargs["temperature"] = temperature
+        return ChatAnthropic(**kwargs)
     if provider == "google":
         from langchain_google_genai import ChatGoogleGenerativeAI
 
-        return ChatGoogleGenerativeAI(model=model, temperature=temperature)
+        return ChatGoogleGenerativeAI(
+            model=model, temperature=temperature, max_output_tokens=max_tokens
+        )
     # azure_anthropic
     import os
 
@@ -93,6 +113,7 @@ def make_llm(
 
     return ChatAnthropic(
         model=model,
+        max_tokens=max_tokens,
         base_url=os.environ["AZURE_ANTHROPIC_ENDPOINT"].rstrip("/"),
         api_key=os.environ["AZURE_ANTHROPIC_API_KEY"],
     )
@@ -170,6 +191,12 @@ class KathDBConfig:
     # cardinalities / selectivities (model calls on ``grouping_sample_rows`` rows).
     grouping_base_plan_profiling: bool = True
     grouping_sample_rows: int = 50
+
+    # -- Results --
+    # After a query, ask the planner model which result tables are worth keeping in the
+    # catalog for later queries (the user confirms when human_in_the_loop). False = keep
+    # the catalog as registered; results are still returned.
+    persist_results: bool = False
 
     # -- Code generation --
     # Generated code attaches images with ``detail="low"`` (cheap resolution).

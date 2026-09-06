@@ -77,3 +77,15 @@ def test_trace_to_dict_shape():
         "atomic_dag",
         "final_dag",
     }
+
+
+def test_ranker_rewrite_becomes_the_fused_rationale():
+    from kathdb.plan_gen.optimizer.orchestrator import _proposals_from_partition
+
+    partition = (frozenset({"a", "b"}), frozenset({"c"}))
+    props = _proposals_from_partition(
+        partition, {frozenset({"a", "b"}): "call the model per key and stop at the first hit"}
+    )
+    assert len(props) == 1
+    assert props[0].rationale == "call the model per key and stop at the first hit"
+    assert _proposals_from_partition(partition)[0].rationale == ""

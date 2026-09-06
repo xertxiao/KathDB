@@ -18,7 +18,7 @@ whose DataFrame parameters are `pd.DataFrame` and a `CONTRACT` dict (purpose,
 per-parameter docs, output, `use_when` / `not_when`, an example). `fn.md` is
 rendered from it with `FunctionManager.save_function` /
 `kathdb.common.fn_contract.render_fn_md`. Model calls go through
-`kathdb.common.litellm_sync.call_text`.
+`kathdb.common.model_call.call_model`.
 
 `_example/sem_map/` is a complete worked example (underscore-prefixed folders are
 not discovered); it is also the template the function finalizer shows the LLM when

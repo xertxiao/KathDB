@@ -375,6 +375,18 @@ class KathDB:
         """True for the auto-populated multimodal views (as opposed to registered tables)."""
         return self._ctx.is_view(name)
 
+    def drop_table(self, name: str) -> None:
+        """Remove a registered table (and its multimodal views) from the catalog."""
+        self._ctx.drop_table(name)
+        logger.info("Dropped table '%s'.", name)
+
+    def clear_tables(self) -> list[str]:
+        """Remove every registered table from the catalog. Returns the names."""
+        names = [n for n in self.list_tables() if not self.is_view(n)]
+        for n in names:
+            self.drop_table(n)
+        return names
+
     def load_table(self, name: str, *, n: int | None = None) -> DataFrame:
         return self._ctx.load_table(name, n=n)
 
@@ -511,14 +523,16 @@ class KathDB:
         )
 
         # LLM-guided persistence: ask which result tables are worth keeping.
-        tables_to_persist = decide_persistence(
-            make_llm(self._config.planner_model, temperature=self._config.llm_temperature),
-            nl_query=nl_query,
-            plan=code_tree,
-            result_ctx=result_ctx,
-            input_rel_names=input_rel_names,
-            skip_user_review=not self._config.human_in_the_loop,
-        )
+        tables_to_persist: list[str] = []
+        if self._config.persist_results and code_tree is not None:
+            tables_to_persist = decide_persistence(
+                make_llm(self._config.planner_model, temperature=self._config.llm_temperature),
+                nl_query=nl_query,
+                plan=code_tree,
+                result_ctx=result_ctx,
+                input_rel_names=input_rel_names,
+                skip_user_review=not self._config.human_in_the_loop,
+            )
         if tables_to_persist:
             self._ctx.import_execution_results(result_ctx, tables_to_persist)
             logger.info("Persisted tables (user-approved): %s", tables_to_persist)
@@ -555,6 +569,51 @@ class KathDB:
         if result_ctx is not None and isinstance(result_ctx.get(name), DataFrame):
             return result_ctx[name]
         return self._ctx.load_table(name) if self._ctx.has_table(name) else None
+
+    # ------------------------------------------------------------------
+    # Function library
+    # ------------------------------------------------------------------
+
+    def list_functions(self) -> list[dict[str, Any]]:
+        """One entry per library function: name, source (prebuilt/generated), purpose, uses."""
+        fm = self._fn_manager
+        catalog = fm.discover_functions(sources=("builtin", "generated"))
+        entries = []
+        for name, entry in catalog.items():
+            fn_dir = fm._resolve_fn_dir(name)
+            source = "prebuilt" if fn_dir and fn_dir.parent == fm._builtin_fn_dir else "generated"
+            purpose = next(
+                (ln.strip() for ln in (entry.get("fn_md") or "").splitlines()
+                 if ln.strip() and not ln.startswith("#")),
+                "",
+            )
+            rec = fm._records.get(name)
+            entries.append(
+                {
+                    "name": name,
+                    "source": source,
+                    "purpose": purpose,
+                    "uses": rec.usage_count if rec else 0,
+                    "members": list(rec.member_atoms) if rec else [],
+                }
+            )
+        return entries
+
+    def function_docs(self, name: str) -> str | None:
+        """The ``fn.md`` of a library function, or None."""
+        return self._fn_manager.read_function_file(name, "fn.md")
+
+    def function_code(self, name: str) -> str | None:
+        """The ``scripts/fn.py`` of a library function, or None."""
+        return self._fn_manager.read_function_file(name, "scripts/fn.py")
+
+    def remove_function(self, name: str) -> bool:
+        """Delete a saved (generated) function from the library; True if it existed."""
+        return self._fn_manager.remove_function(name)
+
+    def clear_functions(self) -> list[str]:
+        """Delete every saved (generated) function; prebuilt ones stay. Returns the names."""
+        return self._fn_manager.clear_generated()
 
     def last_grouping_trace(self) -> dict[str, Any] | None:
         """The grouping optimizer's trace for the most recent ``.query()``.

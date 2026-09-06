@@ -6,7 +6,7 @@
     kathdb> Which products under 50 show a logo in their image?
     kathdb> /config logical_rewrite=false phy_opt=true
 
-Commands: /help /model /register-data /tables /config /cost /plan /export /exit
+Commands: /help /model /register-data /tables /config /hitl /cost /plan /functions /export /clear-data /clear-fn /exit
 """
 
 from __future__ import annotations
@@ -172,6 +172,10 @@ _STAGE_LABELS = (
     ("[list_rank]", "ranking groupings"),
     ("[optimizer]", "optimizing"),
     ("Stage 3/3", "generating code"),
+    ("persist", "deciding what to keep"),
+    ("[exec]", "executing"),
+    ("[save]", "saving reusable functions"),
+    ("finaliz", "saving reusable functions"),
 )
 
 
@@ -189,15 +193,27 @@ def stage_label(message: str) -> str | None:
     return None
 
 
-class _Progress(logging.Handler):
-    """Feeds KathDB's stage log lines into the spinner label."""
+_INTERACT_LEVEL = logging.INFO + 5  # KathDB's human-in-the-loop dialogue level
 
-    def __init__(self, spinner: _Spinner) -> None:
+
+class _Progress(logging.Handler):
+    """Feeds KathDB's stage log lines into the spinner label; prints its dialogue."""
+
+    def __init__(self, spinner: _Spinner, style: _Style) -> None:
         super().__init__(logging.INFO)
         self._spinner = spinner
+        self._style = style
+        self.warnings: list[str] = []
 
     def emit(self, record: logging.LogRecord) -> None:
-        label = stage_label(record.getMessage())
+        message = record.getMessage()
+        if record.levelno == _INTERACT_LEVEL:
+            # Human-in-the-loop dialogue (clarification menu, plan review, save approval).
+            print(self._style.key(message))
+            return
+        if record.levelno >= logging.WARNING:
+            self.warnings.append(message.splitlines()[0][:160])
+        label = stage_label(message)
         if label:
             self._spinner.label = label
 
@@ -275,6 +291,8 @@ class KathDBShell:
     ) -> None:
         self.db_path = Path(db_path)
         self.verbose = verbose
+        # The function library sits next to the catalog, one per catalog.
+        self.fn_dir = self.db_path.with_name(self.db_path.stem + "_functions")
         if not verbose:
             _quiet_library()
         self.pending: dict[str, Any] = dict(settings or {})
@@ -290,9 +308,13 @@ class KathDBShell:
             ),
             "/tables": (self.cmd_tables, "[name]  list tables or inspect one"),
             "/config": (self.cmd_config, "[key=value ...]  show or change any setting"),
+            "/hitl": (self.cmd_hitl, "[on|off]  human in the loop: clarifying questions, plan review, save approval"),
             "/cost": (self.cmd_cost, "tokens / USD / seconds of the last query"),
             "/plan": (self.cmd_plan, "what the optimizer fused in the last query"),
+            "/functions": (self.cmd_functions, "[name]  prebuilt + saved functions, or one function's docs and code"),
             "/export": (self.cmd_export, "[file.csv]  save the last answer"),
+            "/clear-data": (self.cmd_clear_data, "[table]  drop one table, or every registered table"),
+            "/clear-fn": (self.cmd_clear_fn, "[name]  delete one saved function, or all of them (prebuilt stay)"),
             "/exit": (self.cmd_exit, "quit"),
             "/quit": (self.cmd_exit, "quit"),
         }
@@ -325,8 +347,9 @@ class KathDBShell:
 
     def open(self) -> Any:
         if self.db is None:
+            self.pending.setdefault("generated_fn_dir", str(self.fn_dir))
             opener = self._open_fn or self._default_open
-            with _Spinner("starting KathDB", self.style, enabled=True):
+            with _Spinner("starting KathDB (first start loads the LLM libraries)", self.style, enabled=True):
                 self.db = opener(self.db_path, self.pending)
         return self.db
 
@@ -336,8 +359,7 @@ class KathDBShell:
 
         basic = {k: v for k, v in settings.items() if k in _BASIC}
         advanced = {k: v for k, v in settings.items() if k not in _BASIC}
-        config = KathDBConfig(**advanced) if advanced else None
-        return KathDB(db_path, config=config, **basic)
+        return KathDB(db_path, config=KathDBConfig(**advanced), **basic)
 
     def _base_tables(self) -> list[str]:
         return [n for n in self.db.list_tables() if not self.db.is_view(n)]
@@ -352,6 +374,7 @@ class KathDBShell:
             f"ai-op {s.key(str(self.setting('ai_op_model')))}",
             f"optimizer {s.ok('on') if self.setting('logical_rewrite') else s.dim('off')}",
             f"phy-opt {s.ok('on') if self.setting('phy_opt') else s.dim('off')}",
+            f"hitl {s.ok('on') if self.setting('human_in_the_loop') else s.dim('off')}",
             f"tables {n_tables}",
         ]
         return s.dim("  ·  ").join(parts)
@@ -500,6 +523,15 @@ class KathDBShell:
         marker = "" if value == getattr(defaults, name) else self.style.accent("  (changed)")
         self.say(f"  {self.style.key(name):<44} {value!r}{marker}")
 
+    def cmd_hitl(self, args: list[str]) -> None:
+        if args:
+            value = coerce_setting("human_in_the_loop", args[0])
+        else:
+            value = not bool(self.setting("human_in_the_loop"))
+        self.apply({"human_in_the_loop": value})
+        self.say(self.style.ok("✓ human in the loop " + ("on: KathDB will ask clarifying questions, show the plan for review and ask before saving functions" if value else "off: fully automatic")))
+        self.say(self.style.dim(self.status()))
+
     def cmd_cost(self, args: list[str]) -> None:
         cost = self.db.last_cost() if self.db is not None else None
         if cost is None:
@@ -513,11 +545,81 @@ class KathDBShell:
             self.say(self.style.dim("no optimizer trace (no query yet, or logical_rewrite=false)"))
             return
         groups = trace.get("fused_groups") or []
-        self.say(f"atoms: {trace.get('n_atoms')}  candidates: {trace.get('n_candidates')}  fused groups: {len(groups)}")
+        self.say(f"atomic operators: {trace.get('n_atoms')}  ·  candidate groupings: {trace.get('n_candidates')}  ·  fused groups: {len(groups)}")
         for g in groups:
-            self.say(f"  {self.style.accent('⊕')} {g}")
+            members = g.get("members", g) if isinstance(g, dict) else g
+            self.say(f"  {self.style.accent('⊕')} " + " + ".join(map(str, members)))
+            if isinstance(g, dict) and g.get("rationale"):
+                self.say(self.style.dim(f"     {g['rationale']}"))
         if trace.get("short_circuit_reason"):
             self.say(self.style.dim(f"  ({trace['short_circuit_reason']})"))
+
+    def cmd_functions(self, args: list[str]) -> None:
+        db = self.open()
+        if args:
+            name = args[0]
+            docs, code = db.function_docs(name), db.function_code(name)
+            if docs is None and code is None:
+                raise ValueError(f"no function {name!r}; /functions lists them")
+            if docs:
+                self.say(docs.rstrip())
+                self.say()
+            if code:
+                self.say(self.style.bold("── scripts/fn.py ") + self.style.dim("─" * 44))
+                self.say(code.rstrip())
+            return
+        entries = db.list_functions()
+        if not entries:
+            self.say(self.style.dim("function library is empty (functions are saved after queries when generated_functions=true)"))
+            return
+        for e in entries:
+            tag = self.style.accent(e["source"]) if e["source"] == "prebuilt" else self.style.key(e["source"])
+            uses = self.style.dim(f"  used {e['uses']}x") if e["source"] == "generated" else ""
+            self.say(f"  {tag:<20} {self.style.bold(e['name'])}{uses}")
+            if e["purpose"]:
+                self.say(self.style.dim(f"      {e['purpose'][:110]}"))
+            if e["members"]:
+                self.say(self.style.dim(f"      from: {' + '.join(e['members'])}"))
+
+    def _confirm(self, what: str) -> bool:
+        if not sys.stdin.isatty():
+            return True
+        answer = input(self.style.accent(f"{what} [y/N] ")).strip().lower()
+        return answer in ("y", "yes")
+
+    def cmd_clear_data(self, args: list[str]) -> None:
+        db = self.open()
+        if args:
+            if not db.has_table(args[0]):
+                raise ValueError(f"no table {args[0]!r}")
+            db.drop_table(args[0])
+            self.say(self.style.ok(f"✓ dropped {args[0]}"))
+        else:
+            names = self._base_tables()
+            if not names:
+                self.say(self.style.dim("no tables to drop"))
+                return
+            if not self._confirm(f"drop {len(names)} table(s): {', '.join(names)}?"):
+                return
+            db.clear_tables()
+            self.say(self.style.ok(f"✓ dropped {len(names)} table(s)"))
+        self.say(self.style.dim(self.status()))
+
+    def cmd_clear_fn(self, args: list[str]) -> None:
+        db = self.open()
+        if args:
+            if not db.remove_function(args[0]):
+                raise ValueError(f"no saved function {args[0]!r} (prebuilt functions cannot be removed)")
+            self.say(self.style.ok(f"✓ removed {args[0]}"))
+            return
+        saved = [e["name"] for e in db.list_functions() if e["source"] == "generated"]
+        if not saved:
+            self.say(self.style.dim("no saved functions"))
+            return
+        if not self._confirm(f"delete {len(saved)} saved function(s): {', '.join(saved)}?"):
+            return
+        removed = db.clear_functions()
+        self.say(self.style.ok(f"✓ removed {len(removed)} function(s)"))
 
     def cmd_export(self, args: list[str]) -> None:
         if self.last_df is None:
@@ -540,16 +642,22 @@ class KathDBShell:
         klog = logging.getLogger("kathdb")
         old_level = klog.level
         spinner = _Spinner("thinking", self.style, enabled=spinner_on)
-        progress = _Progress(spinner)
+        progress = _Progress(spinner, self.style)
         klog.addHandler(progress)
         if klog.level == logging.NOTSET or klog.level > logging.INFO:
             klog.setLevel(logging.INFO)
+        muted = [] if self.verbose else [h for h in klog.handlers if h is not progress]
+        old_handler_levels = [h.level for h in muted]
+        for h in muted:
+            h.setLevel(logging.ERROR)
         try:
             with spinner:
                 relations = db.query(question)
         finally:
             klog.removeHandler(progress)
             klog.setLevel(old_level)
+            for h, lvl in zip(muted, old_handler_levels):
+                h.setLevel(lvl)
         wall = time.perf_counter() - t0
         result = db.last_result(relations)
         self.last_df = result
@@ -561,6 +669,12 @@ class KathDBShell:
             self.say(result.head(20).to_string(index=False))
             if len(result) > 20:
                 self.say(self.style.dim(f"  … {len(result) - 20} more rows"))
+        if progress.warnings:
+            shown = progress.warnings[:3]
+            for w in shown:
+                self.say(self.style.dim(f"⚠ {w}"))
+            if len(progress.warnings) > 3:
+                self.say(self.style.dim(f"⚠ … {len(progress.warnings) - 3} more (run with --verbose)"))
         cost = db.last_cost()
         if cost is not None:
             total = cost.totals()
@@ -589,13 +703,29 @@ class KathDBShell:
         else:
             self.run_query(line)
 
+    def banner(self) -> None:
+        from .. import __version__
+
+        s = self.style
+        self.say(s.bold("KathDB") + s.dim(f" v{__version__}") + s.dim("  ·  kdb shell"))
+        self.say(
+            s.dim("planner ") + s.key(str(self.setting("planner_model")))
+            + s.dim("  ·  ai-op ") + s.key(str(self.setting("ai_op_model")))
+        )
+        self.say(s.dim(str(Path.cwd())))
+        n_fns = sum(1 for p in self.fn_dir.iterdir() if p.is_dir() and not p.name.startswith("_")) if self.fn_dir.is_dir() else 0
+        self.say(s.dim(f"catalog {self.db_path}  ·  functions {self.fn_dir} ({n_fns})  ·  optimizer ")
+                 + (s.ok("on") if self.setting("logical_rewrite") else s.dim("off"))
+                 + s.dim("  ·  phy-opt ") + (s.ok("on") if self.setting("phy_opt") else s.dim("off")))
+        self.say()
+        self.say(s.dim("Type a question over your tables, or /help. /register-data <dir> adds data."))
+        self.say()
+
     def loop(self) -> int:
         self._install_readline()
-        self.say(self.style.bold("KathDB") + self.style.dim("  ·  ask questions over your tables; /help for commands"))
-        self.say(self.style.dim(self.status()))
         while self._running:
             try:
-                line = input(self.style.accent("kathdb> "))
+                line = input(self.style.accent("kdb> "))
             except EOFError:
                 self.say()
                 break
@@ -651,6 +781,7 @@ def main(argv: list[str] | None = None) -> int:
         if k in ("planner_model", "ai_op_model", "worker_env") and v
     }
     shell = KathDBShell(ns.db, settings=settings, color=not ns.no_color, verbose=ns.verbose)
+    shell.banner()
     for line in ns.command:
         try:
             shell.dispatch(line)

@@ -55,6 +55,31 @@ class _FakeDB:
     def is_view(self, name):
         return False
 
+    def has_table(self, name):
+        return name in self.tables
+
+    def drop_table(self, name):
+        self.tables.pop(name)
+
+    def clear_tables(self):
+        names = list(self.tables); self.tables.clear(); return names
+
+    def remove_function(self, name):
+        return name == "saved_fn"
+
+    def clear_functions(self):
+        return ["saved_fn"]
+
+    def list_functions(self):
+        return [{"name": "sem_map", "source": "prebuilt", "purpose": "Map", "uses": 0, "members": []},
+                {"name": "saved_fn", "source": "generated", "purpose": "Saved", "uses": 2, "members": ["a", "b"]}]
+
+    def function_docs(self, name):
+        return "# sem_map\n\nMap docs" if name == "sem_map" else None
+
+    def function_code(self, name):
+        return "def sem_map(df): ..." if name == "sem_map" else None
+
     def table_info(self, name):
         return {"rows": 1, "columns": ["id"], "modalities": {k: v.value for k, v in self.tables[name].items()}}
 
@@ -181,6 +206,7 @@ def test_stage_labels():
     assert stage_label("=== Stage 2/3: Plan Gen ===") == "planning"
     assert stage_label("[codegen] op=classify_x layer=1 codegen_time=1s") == "generating code for classify_x"
     assert stage_label("[run] dispatched g_1 (level 0; 1 running, 0 waiting)") == "executing g_1"
+    assert stage_label("LLM persistence decision failed") == "deciding what to keep"
     assert stage_label("unrelated") is None
 
 
@@ -194,3 +220,67 @@ def test_export_after_query(tmp_path):
     out = tmp_path / "out.csv"
     sh.dispatch(f"/export {out}")
     assert out.read_text().splitlines() == ["id", "1", "2"]
+
+
+def test_functions_commands(tmp_path, capsys):
+    sh = _shell(tmp_path)
+    sh.open()
+    sh.dispatch("/functions")
+    out = capsys.readouterr().out
+    assert "sem_map" in out and "saved_fn" in out and "used 2x" in out and "a + b" in out
+    sh.dispatch("/functions sem_map")
+    assert "Map docs" in capsys.readouterr().out
+    with pytest.raises(ValueError):
+        sh.dispatch("/functions nope")
+
+
+def test_clear_data_and_clear_fn(tmp_path, capsys):
+    sh = _shell(tmp_path)
+    sh.open()
+    sh.db.tables.update({"t1": {}, "t2": {}})
+    sh.dispatch("/clear-data t1")
+    assert list(sh.db.tables) == ["t2"]
+    sh.dispatch("/clear-data")  # stdin is not a tty under pytest -> no confirmation prompt
+    assert sh.db.tables == {}
+    with pytest.raises(ValueError):
+        sh.dispatch("/clear-data nope")
+    sh.dispatch("/clear-fn saved_fn")
+    with pytest.raises(ValueError):
+        sh.dispatch("/clear-fn sem_map")
+    sh.dispatch("/clear-fn")
+    assert "removed 1 function" in capsys.readouterr().out
+
+
+def test_hitl_toggle(tmp_path):
+    sh = _shell(tmp_path)
+    sh.dispatch("/hitl")
+    assert sh.setting("human_in_the_loop") is True
+    sh.dispatch("/hitl off")
+    assert sh.setting("human_in_the_loop") is False
+    sh.open()
+    sh.dispatch("/hitl on")
+    assert sh.db.config.human_in_the_loop is True
+
+
+def test_function_library_sits_next_to_catalog(tmp_path):
+    sh = _shell(tmp_path)
+    db = sh.open()
+    assert db.config.generated_fn_dir == str(tmp_path / "c_functions")
+
+
+def test_hitl_dialogue_is_printed_during_query(tmp_path, capsys):
+    import logging
+
+    class _TalkingDB(_FakeDB):
+        def query(self, q):
+            logging.getLogger("kathdb.test").log(logging.INFO + 5, "❓ Clarification needed")
+            logging.getLogger("kathdb.test").info("=== Stage 1/3: Parsing ===")
+            return super().query(q)
+
+    sh = KathDBShell(tmp_path / "c.duckdb", color=False, open_fn=_TalkingDB)
+    sh.open()
+    sh.db.tables["t"] = {}
+    sh.dispatch("/hitl on")
+    sh.dispatch("Which rows?")
+    out = capsys.readouterr().out
+    assert "Clarification needed" in out and "Stage 1/3" not in out

@@ -8,7 +8,7 @@ cardinalities. The pick is validated/repaired; an invalid pick falls back to ato
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from pydantic import BaseModel, Field
 
@@ -81,6 +81,23 @@ class PartitionProposalResponse(BaseModel):
     )
 
 
+class GroupRewrite(BaseModel):
+    """The rewrite one fused group of the top-ranked candidate stands for."""
+
+    atoms: list[str] = Field(
+        description="Op-names of ONE fused group of the TOP-ranked candidate, copied exactly."
+    )
+    rewrite: str = Field(
+        description=(
+            "At most two sentences, concrete: what the fused code computes first, per "
+            "which key it calls the model, and where it stops early — then why the "
+            "result is unchanged. E.g. 'Classify each brand's items one at a time and "
+            "stop at the second distinct kind; a brand qualifies iff all its kinds "
+            "agree, so the first disagreement already decides it.'"
+        ),
+    )
+
+
 class PartitionCandidateRanking(BaseModel):
     """Listwise ranking of several candidate partitions (best first)."""
 
@@ -95,6 +112,10 @@ class PartitionCandidateRanking(BaseModel):
     reasoning: str = Field(
         default="",
         description="Brief justification for the top-ranked candidate.",
+    )
+    rewrites: list[GroupRewrite] = Field(
+        default_factory=list,
+        description="One entry per fused group of the TOP-ranked candidate.",
     )
 
 
@@ -111,6 +132,8 @@ class SelectionResult:
     reason: str | None
     n_fused_groups: int
     n_candidates: int
+    # fused group -> the rewrite the ranker chose it for (handed to the fused codegen)
+    rewrites: dict[frozenset[str], str] = field(default_factory=dict)
 
 
 def select_partition(
@@ -128,6 +151,7 @@ def select_partition(
         singleton = tuple(frozenset({a}) for a in atoms)
         logger.info("[list_rank] no fusion candidate can cut model calls; atomic plan")
         return SelectionResult(singleton, "no_fusion_candidates", 0, 0)
+    rewrites = dict(getattr(selector, "group_rewrites", {}) or {})
 
     partition, reason, n_multi = _validate_or_repair(
         proposed, root, atoms, max_group_size=max_group_size
@@ -138,7 +162,7 @@ def select_partition(
         n_multi,
         reason or "ok",
     )
-    return SelectionResult(partition, reason, n_multi, selector.n_candidates)
+    return SelectionResult(partition, reason, n_multi, selector.n_candidates, rewrites)
 
 
 def _validate_or_repair(
@@ -381,6 +405,7 @@ class ListRankSelector:
     def select(self, root) -> Partition | None:
         """Return the best partition, or ``None`` when nothing can be fused."""
         self.n_candidates = 0
+        self.group_rewrites: dict[frozenset[str], str] = {}
         self._ensure_engine()
         candidates = self._enumerate_candidates(root)
         candidates = self._canonicalize_candidates(root, candidates)
@@ -528,11 +553,17 @@ class ListRankSelector:
             "prefer the one that fuses FEWER atoms (smaller groups) — simpler generated "
             "code, lower risk.\n\n"
             f"{self._render_candidates(candidates)}\n\n"
-            "Return candidate ids best-first."
+            "Return candidate ids best-first. For EVERY fused group of your top candidate "
+            "also return its rewrite: at most two sentences saying what the fused code "
+            "computes first, per which key it calls the model and where it stops early, "
+            "and why the result is unchanged."
         )
         resp = self._code_gen._invoke_structured(
             prompt, llm=self._code_gen.generation_llm, schema=PartitionCandidateRanking
         )
+        for rw in resp.rewrites or []:
+            if rw.atoms and rw.rewrite.strip():
+                self.group_rewrites[frozenset(rw.atoms)] = rw.rewrite.strip()
         order = [
             i for i in (resp.ranked_candidate_ids or []) if 0 <= i < len(candidates)
         ]

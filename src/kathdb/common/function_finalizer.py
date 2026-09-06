@@ -113,14 +113,15 @@ parameter must be `int | None` with `None` = unlimited. Annotate every param; \
 use `pd.DataFrame` for DataFrame inputs. The CONTRACT `example` must use \
 NEUTRAL placeholder values, never the origin query's literals.
 - MODEL-CALL RULE: every model call in the body MUST go through \
-`from kathdb.common.litellm_sync import call_text`, whose EXACT signature is \
-`call_text(prompt: str, model: str, images: list[str], audios: list[tuple[str, str]] | None = None, image_detail: str = "low", reasoning_effort: str = "minimal", temperature: float = 0.0) -> str`. \
-Call it with EXACTLY these parameters — do NOT invent keyword arguments, and \
-do NOT call any other client (rewrite raw `litellm.completion(...)` calls in \
-the source to `call_text`). A hallucinated kwarg raises TypeError at reuse \
-time, and a per-row `except` silently turns that into an all-empty result — \
-so also keep `except` clauses NARROW around the `call_text` line only, never \
-around whole loop bodies. The `model` parameter's default MUST be the exact \
+`from kathdb.common.model_call import call_model`, whose EXACT signature is \
+`call_model(prompt: str, model: str, media=None, *, modality: str | None = None, image_detail: str = "low", reasoning_effort: str = "minimal", temperature: float = 0.0) -> str`. \
+`media` is one item or a list: image paths / URLs / data URIs, audio paths, or \
+`(base64, format)` audio tuples (text goes in `prompt`); give the function a \
+`modality` parameter when the media kind is the caller's choice. Call it with \
+EXACTLY these parameters — do NOT invent keyword arguments, and do NOT call any \
+other client. A hallucinated kwarg raises TypeError at reuse time, and a per-row \
+`except` silently turns that into an all-empty result — so also keep `except` \
+clauses NARROW around the `call_model` line only, never around whole loop bodies. The `model` parameter's default MUST be the exact \
 model string that appears in the source code, copied VERBATIM (keep any \
 provider prefix like `azure/`) — a "simplified" model name can route to a \
 provider this deployment cannot reach.

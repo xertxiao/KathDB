@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import pandas as pd
 
-from kathdb.common.litellm_sync import call_text, run_batch
+from kathdb.common.model_call import call_model, run_batch
 
 from .prompt_render import build_row_prompt_and_media
 
@@ -76,8 +76,8 @@ def extract_column(
 
     fns = [
         (
-            lambda p=p, im=im, au=au: call_text(
-                p, model, im, au, image_detail=image_detail, reasoning_effort=reasoning_effort
+            lambda p=p, im=im, au=au: call_model(
+                p, model, im + au, image_detail=image_detail, reasoning_effort=reasoning_effort
             )
         )
         for p, im, au in zip(prompts, image_lists, audio_lists)

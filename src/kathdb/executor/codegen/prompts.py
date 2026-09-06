@@ -61,7 +61,7 @@ _EFFICIENCY_HINTS = (
 )
 
 
-_IMAGE_DETAIL_LOW_RULE = 'When you attach an image, set `image_url.detail="low"`. '
+_IMAGE_DETAIL_LOW_RULE = 'Attach images through `call_model(..., image_detail="low")` (its default). '
 
 # phy_opt=False: HOW each model call is made is pinned (one call per item, no
 # batching / cascades / concurrency); only logical rewrites may cut cost.
@@ -205,6 +205,12 @@ column name, a method call, a None guard) that resolves the error.
 ).strip()
 
 
+_CALL_MODEL_SIG = (
+    '`call_model(prompt: str, model: str, media=None, *, modality: str | None = None, '
+    'image_detail: str = "low", reasoning_effort: str = "minimal", temperature: float = 0.0) -> str`'
+)
+
+
 def format_available_libs_block() -> str:
     """Return the pinned ``## Available Libraries`` prompt section."""
     return (
@@ -214,7 +220,9 @@ def format_available_libs_block() -> str:
         "`base64`, `dataclasses`, etc. — are always available). Do NOT "
         "use `pip install`, `subprocess`, or any other mechanism to "
         "install packages at runtime.\n"
-        "- litellm\n"
+        "- `from kathdb.common.model_call import call_model` — the ONLY way to call "
+        "a model: " + _CALL_MODEL_SIG + "; `media` = image/audio path(s), URL(s) or data URI(s), text goes "
+        "in `prompt`. Never call litellm or a provider SDK directly.\n"
         "- pandas\n"
         "- pydantic\n"
         "- scipy"
@@ -574,7 +582,7 @@ def format_codegen_prompt(
         )
     model_constraint = (
         f"{model_instruction}\n"
-        "- Sampling: every ``litellm.completion(...)`` call MUST pass "
+        "- Sampling: every ``call_model(...)`` call MUST pass "
         f"``temperature={ai_op_temperature_literal}`` (yes/no determinism "
         "matters for downstream early-stopping logic; do not omit it, even "
         "if an example elsewhere only shows the model id)."
