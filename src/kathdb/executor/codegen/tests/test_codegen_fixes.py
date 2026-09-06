@@ -106,13 +106,14 @@ def test_run_requires_worker_or_manager():
 # ---------------------------------------------------------------------------
 
 
-def test_dead_channel_retries_same_code_without_regen():
+def test_timeout_retries_same_code_without_regen():
     cg = _make_code_gen(max_retries=2)
     mgr = _FakeManager()
     cg._worker_manager = mgr
 
     # diagnosis_llm is None: any regeneration attempt would raise.
-    node = _FakeNode({"worker-1"}, BrokenPipeError("channel closed"))
+    timeout_err = KathDBWorkerExecuteError("n1", "worker timed out after 5.0s")
+    node = _FakeNode({"worker-1"}, timeout_err)
     out = cg._execute_with_regen(node, {}, layer_idx=0)
 
     assert out is node  # same node, same code
@@ -133,9 +134,8 @@ def test_infra_error_exhausting_retries_raises():
 def test_is_infra_error_classification():
     assert CodeGenerator._is_infra_error(EOFError("x"), "x")
     assert CodeGenerator._is_infra_error(BrokenPipeError(), "")
-    # A timeout means the code ran too long (too many model calls): revise, don't retry.
     timeout = KathDBWorkerExecuteError("fn", "worker timed out after 3s")
-    assert not CodeGenerator._is_infra_error(timeout, timeout.underlying_error)
+    assert CodeGenerator._is_infra_error(timeout, timeout.underlying_error)
     genuine = KathDBWorkerExecuteError("fn", "KeyError: 'col'")
     assert not CodeGenerator._is_infra_error(genuine, genuine.underlying_error)
 

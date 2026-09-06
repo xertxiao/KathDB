@@ -903,14 +903,14 @@ class CodeGenerator:
 
     @staticmethod
     def _is_infra_error(exc: Exception, error_str: str) -> bool:
-        """Infrastructure failure (install, dead channel): retry the same code.
-
-        A worker timeout is NOT infrastructure: the code ran too long (usually far too
-        many model calls), so it goes through diagnosis and revision instead.
-        """
+        """Infrastructure failure (install, timeout, dead channel): retry the same code."""
         if isinstance(exc, KathDBWorkerInstallError):
             return True
         if isinstance(exc, (EOFError, BrokenPipeError, OSError)):
+            return True
+        if isinstance(exc, KathDBWorkerExecuteError) and "worker timed out after" in (
+            error_str or ""
+        ):
             return True
         return False
 
