@@ -2,7 +2,7 @@
 
 These take a template like ``"Is {title} about {topic}?"`` plus a pandas row
 and a modality map, and produce ``(prompt_text, image_uris, audio_payloads)``
-ready to hand to ``litellm_sync.call_text``.
+ready to hand to ``model_call.call_model``.
 """
 
 from __future__ import annotations

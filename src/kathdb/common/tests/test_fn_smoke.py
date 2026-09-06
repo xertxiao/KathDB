@@ -3,24 +3,24 @@
 import inspect
 import textwrap
 
-from kathdb.common.fn_smoke import FAKE_CALL_TEXT_PARAMS, run_smoke
+from kathdb.common.fn_smoke import FAKE_CALL_MODEL_PARAMS, run_smoke
 
 
 def test_fake_signature_matches_real():
-    """The harness fake must track call_text's real signature."""
-    from kathdb.common.litellm_sync import call_text
+    """The harness fake must track call_model's real signature."""
+    from kathdb.common.model_call import call_model
 
     real = [
         (p.name, None if p.default is inspect.Parameter.empty else p.default)
-        for p in inspect.signature(call_text).parameters.values()
+        for p in inspect.signature(call_model).parameters.values()
     ]
-    assert real == list(FAKE_CALL_TEXT_PARAMS)
+    assert real == list(FAKE_CALL_MODEL_PARAMS)
 
 
 GOOD_FN = textwrap.dedent(
     """
     import pandas as pd
-    from kathdb.common.litellm_sync import call_text
+    from kathdb.common.model_call import call_model
 
     CONTRACT = {"purpose": "label rows", "params": {}, "output": "df"}
 
@@ -28,7 +28,7 @@ GOOD_FN = textwrap.dedent(
         labels = []
         for _, row in df.iterrows():
             try:
-                out = call_text(str(row[text_col]), model, [])
+                out = call_model(str(row[text_col]), model)
             except Exception:
                 out = ""
             labels.append(out)
@@ -58,8 +58,8 @@ def test_good_fn_passes():
 
 def test_invented_kwarg_rejected():
     bad_fn = GOOD_FN.replace(
-        "call_text(str(row[text_col]), model, [])",
-        "call_text(str(row[text_col]), model, [], made_up_kwarg=1)",
+        "call_model(str(row[text_col]), model)",
+        "call_model(str(row[text_col]), model, made_up_kwarg=1)",
     )
     ok, detail = run_smoke(bad_fn, "label_rows", GOOD_SMOKE)
     assert not ok
@@ -70,7 +70,7 @@ def test_zero_model_calls_rejected():
     dead_fn = textwrap.dedent(
         """
         import pandas as pd
-        from kathdb.common.litellm_sync import call_text
+        from kathdb.common.model_call import call_model
 
         CONTRACT = {"purpose": "label rows", "params": {}, "output": "df"}
 
@@ -129,7 +129,7 @@ def test_model_default_must_be_verbatim():
     """A model default must be copied verbatim, provider prefix included."""
     from kathdb.common.function_finalizer import model_default_violation
 
-    src = "out = call_text(p, 'azure/gpt-4o-mini', [])"
+    src = "out = call_model(p, 'azure/gpt-4o-mini')"
     ok_out = 'def f(model: str = "azure/gpt-4o-mini"): ...'
     bad_out = 'def f(model: str = "gpt-4o-mini"): ...'
     assert model_default_violation(ok_out, src) is None
@@ -138,7 +138,7 @@ def test_model_default_must_be_verbatim():
 
 
 def test_smoke_script_that_patches_scripts_fn_still_passes():
-    """Smoke scripts that patch ``scripts.fn.call_text`` still pass."""
+    """Smoke scripts that patch ``scripts.fn.call_model`` still pass."""
     smoke = textwrap.dedent(
         """
         def canned_response(prompt):
@@ -149,8 +149,8 @@ def test_smoke_script_that_patches_scripts_fn_still_passes():
             from unittest.mock import patch
             df = pd.DataFrame({"t": ["great movie", "bad movie"]})
             with patch(
-                "scripts.fn.call_text",
-                side_effect=lambda prompt, model, images, audios=None, **kw: canned_response(prompt),
+                "scripts.fn.call_model",
+                side_effect=lambda prompt, model, media=None, **kw: canned_response(prompt),
             ):
                 out = fn(df, text_col="t")
             assert list(out["label"]) == ["pos", "neg"], list(out["label"])

@@ -226,6 +226,27 @@ class FunctionManager:
         n_reused = sum(1 for r in self._records.values() if r.usage_count > 0)
         return n_reused / len(self._records)
 
+    def remove_function(self, name: str) -> bool:
+        """Delete a generated function (built-ins are never removed); True if it existed."""
+        fn_dir = self._generated_fn_dir / name
+        if not fn_dir.is_dir():
+            return False
+        shutil.rmtree(fn_dir)
+        usage = self._load_usage()
+        if usage.pop(name, None) is not None:
+            self._save_usage(usage)
+        if self._records.pop(name, None) is not None:
+            self._save_records()
+        return True
+
+    def clear_generated(self) -> list[str]:
+        """Delete every generated function; returns the removed names."""
+        names = sorted(
+            p.name for p in self._generated_fn_dir.iterdir()
+            if p.is_dir() and not p.name.startswith("_")
+        )
+        return [n for n in names if self.remove_function(n)]
+
     def evict_least_used(self) -> list[str]:
         """Evict least-used generated functions down to ``max_functions``; returns their names."""
         if not self._generated_fn_dir.is_dir():

@@ -30,7 +30,11 @@ def fused_op_name(members: Iterable[str]) -> str:
     return "g_" + hashlib.sha1(key.encode("utf-8")).hexdigest()[:8]
 
 
-def _proposals_from_partition(partition: Partition) -> list[MergeProposal]:
+def _proposals_from_partition(
+    partition: Partition, rewrites: dict[frozenset[str], str] | None = None
+) -> list[MergeProposal]:
+    """One proposal per multi-atom group; ``rewrites`` (from the ranker) becomes the
+    rationale the fused code generator is shown."""
     out: list[MergeProposal] = []
     for idx, group in enumerate(partition):
         if len(group) < 2:
@@ -42,7 +46,7 @@ def _proposals_from_partition(partition: Partition) -> list[MergeProposal]:
                 member_atoms=members,
                 fused_op_name=fused_op_name(members),
                 fused_description=f"Fusion of: {', '.join(members)}",
-                rationale="Ranked lowest in total execution LLM tokens.",
+                rationale=(rewrites or {}).get(frozenset(group), ""),
             )
         )
     return out
@@ -83,7 +87,7 @@ def run_optimizer(
     trace.n_candidates = selection.n_candidates
     trace.short_circuit_reason = selection.reason
 
-    proposals = _proposals_from_partition(selection.partition)
+    proposals = _proposals_from_partition(selection.partition, selection.rewrites)
     if not proposals:
         logger.info("[optimizer] no multi-atom groups; returning atomic plan.")
         return root, trace

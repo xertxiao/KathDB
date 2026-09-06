@@ -61,7 +61,7 @@ _EFFICIENCY_HINTS = (
 )
 
 
-_IMAGE_DETAIL_LOW_RULE = 'When you attach an image, set `image_url.detail="low"`. '
+_IMAGE_DETAIL_LOW_RULE = 'Attach images through `call_model(..., image_detail="low")` (its default). '
 
 # phy_opt=False: HOW each model call is made is pinned (one call per item, no
 # batching / cascades / concurrency); only logical rewrites may cut cost.
@@ -101,10 +101,17 @@ def _phys_exec_rule(image_detail_low: bool = True, phy_opt: bool = True) -> str:
         "before the model; giving one call enough context to settle the question in "
         "a single judgement (cheap text in the prompt beats re-sending images); "
         "reusing an extracted attribute instead of re-deriving it; stopping once "
-        "the answer is determined. Watch the growth rate above all: never let total "
+        "the answer is determined — only when every row you skip could neither appear "
+        "in nor change the output (a LIMIT reached, a per-key predicate already "
+        "decided); when the output must list every qualifying row or pair, there is "
+        "no early exit. Watch the growth rate above all: never let total "
         "tokens scale with a product of two inputs (e.g. judging every pair, which "
         "re-sends each image once per candidate) when a single pass over one input "
-        "— extract once, then match in code — answers the query."
+        "— extract once, then match in code — answers the query. Matching in code "
+        "means exact or normalized equality against known values; a fuzzy heuristic "
+        "(token overlap, substring, edit distance) is not a substitute for the model's "
+        "judgement — when the match itself needs judgement, give the model the "
+        "candidate list inside the single per-record call and let it choose."
     )
     rule += (
             " You MAY call the provided `kathdb.fn` operators"
@@ -205,6 +212,12 @@ column name, a method call, a None guard) that resolves the error.
 ).strip()
 
 
+_CALL_MODEL_SIG = (
+    '`call_model(prompt: str, model: str, media=None, *, modality: str | None = None, '
+    'image_detail: str = "low", reasoning_effort: str = "minimal", temperature: float = 0.0) -> str`'
+)
+
+
 def format_available_libs_block() -> str:
     """Return the pinned ``## Available Libraries`` prompt section."""
     return (
@@ -214,7 +227,9 @@ def format_available_libs_block() -> str:
         "`base64`, `dataclasses`, etc. — are always available). Do NOT "
         "use `pip install`, `subprocess`, or any other mechanism to "
         "install packages at runtime.\n"
-        "- litellm\n"
+        "- `from kathdb.common.model_call import call_model` — the ONLY way to call "
+        "a model: " + _CALL_MODEL_SIG + "; `media` = image/audio path(s), URL(s) or data URI(s), text goes "
+        "in `prompt`. Never call litellm or a provider SDK directly.\n"
         "- pandas\n"
         "- pydantic\n"
         "- scipy"
@@ -574,7 +589,7 @@ def format_codegen_prompt(
         )
     model_constraint = (
         f"{model_instruction}\n"
-        "- Sampling: every ``litellm.completion(...)`` call MUST pass "
+        "- Sampling: every ``call_model(...)`` call MUST pass "
         f"``temperature={ai_op_temperature_literal}`` (yes/no determinism "
         "matters for downstream early-stopping logic; do not omit it, even "
         "if an example elsewhere only shows the model id)."
@@ -704,7 +719,10 @@ def _format_optimization_rationale_block(rationale: str | None) -> str:
     return (
         "## Optimization Rationale\n"
         "The LP grouping stage picked this fusion because:\n\n"
-        f"{text}\n"
+        f"{text}\n\n"
+        "Use it as the intended structure. If it conflicts with the cost rules below "
+        "(one pass over a single input, no loop over pairs of two inputs, an early exit "
+        "only when the skipped rows cannot change the output), the rules win.\n"
     )
 
 
