@@ -68,8 +68,8 @@ def test_logical_optimization_block_only_when_enabled():
     # Lands before ## Instructions like the other pre-instruction blocks.
     assert on.index("Logical Optimization Objective") < on.index("## Instructions")
     # One-operator scope: cost goal, no-fusion boundary, semantic-equivalence guard.
-    assert "SEMANTICALLY" in on
-    assert "satisfy the downstream schema" in on
+    assert "semantically equal" in on
+    assert "match the downstream schema exactly" in on
     assert "do not absorb upstream or downstream steps" in on
     assert "being measured" not in on and "fused sub-query" not in on
 
@@ -85,9 +85,9 @@ def test_fused_group_uses_lean_objective():
     assert "## Fuse These Steps" in fused
     assert "## Logical Optimization Objective" not in fused
     assert "branch-and-bound" not in fused
-    assert "not a fixed list" in fused  # open-ended, hints not a closed allow-list
-    assert "TOKENS and total model CALLS" in fused  # cost = tokens AND calls
-    assert "AI-extracted label" in fused  # the one correctness trap is kept
+    assert "Any rewrite that reduces either is fine" in fused  # open-ended, hints not a closed allow-list
+    assert "tokens and model calls" in fused  # cost = tokens AND calls
+    assert "model-extracted label" in fused  # the one correctness trap is kept
     assert "## Original Sub-Step Semantics" in fused
     assert fused.index("## Original Sub-Step Semantics") < fused.index("## Fuse These Steps")
     assert "Save-worthiness (`new_fn_worth_saving`)" in fused
@@ -233,7 +233,7 @@ def test_open_vocabulary_fallback_rule_in_both_objectives():
         member_descriptions=["do a", "do b"],
     )
     for prompt in (atomic, fused):
-        assert "keep the model call as the fallback for every row it does not cover" in prompt
+        assert "keeps the model call as the fallback for the rows it does not cover" in prompt
 
 
 def test_render_distinct_samples_marks_sample_relative_counts():
