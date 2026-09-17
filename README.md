@@ -1,5 +1,8 @@
 # KathDB
 
+> **VLDB reviewers:** the code and experiment instructions for the submission are on the
+> [`vldb27-submission`](https://github.com/xertxiao/KathDB/tree/vldb27-submission) branch.
+
 KathDB answers natural-language questions over multimodal data (tables, text,
 images) by planning like a database and executing like an agent: an LLM
 decomposes the question into atomic operators, an optimizer fuses operators so
